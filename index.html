@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Consegne Reparto</title>
+  <!-- Tag PWA per iPhone e Android -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Reparto" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230284c7'/%3E%3Cpath d='M42 24h16v18h18v16H58v18H42V58H24V42h18V24z' fill='%23ffffff'/%3E%3C/svg%3E" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%230284c7'/%3E%3Cpath d='M42 24h16v18h18v16H58v18H42V58H24V42h18V24z' fill='%23ffffff'/%3E%3C/svg%3E" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { -webkit-tap-highlight-color: transparent; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-900 font-sans antialiased">
+
+  <!-- SCHERMATA LOGIN -->
+  <div id="loginView" class="min-h-screen flex items-center justify-center p-5 bg-slate-900">
+    <div class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-sky-600 flex items-center justify-center text-white text-2xl font-bold shadow-md">+</div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900">Consegne Reparto</h1>
+          <p class="text-xs text-slate-500">Accesso riservato agli specializzandi</p>
+        </div>
+      </div>
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+          <input id="loginEmail" type="email" required placeholder="nome@esempio.it" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <input id="loginPassword" type="password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" />
+        </div>
+        <p id="loginError" class="hidden text-xs text-rose-600 font-medium bg-rose-50 p-2.5 rounded-lg"></p>
+        <button id="loginBtn" type="submit" class="w-full py-3 rounded-xl bg-sky-600 text-white font-semibold text-sm active:scale-[0.98] transition">Accedi</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- APP PRINCIPALE -->
+  <div id="appView" class="hidden min-h-screen pb-24">
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-slate-900 text-white px-4 pt-3 pb-3 shadow-md">
+      <div class="max-w-2xl mx-auto">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <div>
+            <h1 class="text-lg font-bold leading-tight">Consegne Reparto</h1>
+            <p id="userEmailBadge" class="text-[11px] text-slate-400 truncate max-w-[180px]"></p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="copyGuardiaBtn" class="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold active:scale-95 transition">Copia Guardia</button>
+            <button id="logoutBtn" class="px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">Esci</button>
+          </div>
+        </div>
+
+        <!-- Contatori -->
+        <div class="grid grid-cols-3 gap-2 mb-3 text-center">
+          <div class="bg-slate-800/90 rounded-xl py-1.5 px-2">
+            <div id="statTotal" class="text-base font-bold text-white">0</div>
+            <div class="text-[10px] text-slate-400 uppercase tracking-wide">Ricoverati</div>
+          </div>
+          <div class="bg-rose-950/70 border border-rose-800/60 rounded-xl py-1.5 px-2">
+            <div id="statCritical" class="text-base font-bold text-rose-400">0</div>
+            <div class="text-[10px] text-rose-300 uppercase tracking-wide">Critici</div>
+          </div>
+          <div class="bg-sky-950/70 border border-sky-800/60 rounded-xl py-1.5 px-2">
+            <div id="statRequests" class="text-base font-bold text-sky-400">0</div>
+            <div class="text-[10px] text-sky-300 uppercase tracking-wide">Richieste</div>
+          </div>
+        </div>
+
+        <!-- Ricerca -->
+        <input id="searchInput" type="search" placeholder="Cerca nome, stanza, diagnosi..." class="w-full px-3.5 py-2 rounded-xl bg-slate-800 text-white placeholder-slate-400 text-sm border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-2.5" />
+
+        <!-- Filtri -->
+        <div id="filterBar" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          <button data-filter="all" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-sky-600 text-white">Tutti</button>
+          <button data-filter="critico" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Critici</button>
+          <button data-filter="rivalutare" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Da rivalutare</button>
+          <button data-filter="dimissione" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">In dimissione</button>
+          <button data-filter="guardia" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Solo Guardia</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Lista Pazienti -->
+    <main class="max-w-2xl mx-auto p-3.5">
+      <div id="emptyState" class="hidden text-center py-12 px-4 bg-white rounded-2xl border border-slate-200">
+        <p class="text-slate-500 text-sm mb-4">Nessun paziente presente in lista.</p>
+        <button id="seedBtn" class="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-semibold">Carica 3 schede di esempio</button>
+      </div>
+      <div id="patientList" class="space-y-3"></div>
+    </main>
+
+    <!-- Pulsante + -->
+    <button id="addPatientBtn" class="fixed bottom-6 right-5 z-30 w-14 h-14 rounded-full bg-sky-600 text-white text-3xl font-light shadow-xl flex items-center justify-center active:scale-95 transition">+</button>
+  </div>
+
+  <!-- MODALE PAZIENTE (AGGIUNGI / MODIFICA) -->
+  <div id="patientModal" class="hidden fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="modalTitle" class="text-lg font-bold">Nuovo Paziente</h2>
+        <button id="closePatientModal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold">✕</button>
+      </div>
+
+      <form id="patientForm" class="space-y-3.5">
+        <input type="hidden" id="pId" />
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Stanza *</label>
+            <input id="pRoom" type="number" inputmode="numeric" required placeholder="Es. 4" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Letto *</label>
+            <div class="flex gap-1.5">
+              <input id="pBed" type="number" inputmode="numeric" required placeholder="1" class="w-14 px-2 py-2 rounded-xl border border-slate-300 text-sm text-center font-bold" />
+              <div class="flex-1 grid grid-cols-4 gap-1">
+                <button type="button" data-bed="1" class="bed-btn py-2 rounded-lg bg-slate-100 text-xs font-bold">1</button>
+                <button type="button" data-bed="2" class="bed-btn py-2 rounded-lg bg-slate-100 text-xs font-bold">2</button>
+                <button type="button" data-bed="3" class="bed-btn py-2 rounded-lg bg-slate-100 text-xs font-bold">3</button>
+                <button type="button" data-bed="4" class="bed-btn py-2 rounded-lg bg-slate-100 text-xs font-bold">4</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Nome e Cognome</label>
+          <input id="pName" type="text" placeholder="Es. Mario Rossi" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+
+        <div class="grid grid-cols-3 gap-2">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Data nascita</label>
+            <input id="pDob" type="date" class="w-full px-2 py-2 rounded-xl border border-slate-300 text-xs" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Età</label>
+            <input id="pAge" type="number" inputmode="numeric" placeholder="Anni" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Sesso</label>
+            <select id="pSex" class="w-full px-2 py-2 rounded-xl border border-slate-300 text-sm bg-white">
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Stato / Urgenza</label>
+            <select id="pStatus" class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm bg-white">
+              <option value="stabile">🟢 Stabile</option>
+              <option value="rivalutare">🟡 Da rivalutare</option>
+              <option value="critico">🔴 Critico</option>
+              <option value="dimissione">🔵 In dimissione</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Data ricovero</label>
+            <input id="pAdmit" type="date" class="w-full px-2.5 py-2 rounded-xl border border-slate-300 text-xs" />
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Diagnosi / Problema principale *</label>
+          <textarea id="pDiagnosis" rows="2" required placeholder="Es. Polmonite basale dx in O2 terapia..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-amber-700 mb-1">Note per la Guardia / Notte</label>
+          <textarea id="pGuardia" rows="2" placeholder="Es. Rivalutare EGA alle 22, se febbre emocolture..." class="w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-sm"></textarea>
+        </div>
+
+        <!-- Richieste -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-semibold text-slate-600">Richieste (esami, consulenze, terapia)</label>
+          </div>
+          <div id="modalRequestsList" class="space-y-1.5 mb-2"></div>
+          <div class="flex gap-2">
+            <input id="newRequestInput" type="text" placeholder="Nuova richiesta..." class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-sm" />
+            <button type="button" id="addRequestBtn" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">+ Aggiungi</button>
+          </div>
+        </div>
+
+        <div class="pt-2 flex gap-2">
+          <button type="button" id="dischargeBtn" class="hidden px-3.5 py-3 rounded-xl bg-rose-100 text-rose-700 text-xs font-bold">Dimetti / Svuota</button>
+          <button type="submit" class="flex-1 py-3 rounded-xl bg-sky-600 text-white font-bold text-sm">Salva Scheda</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE CARTELLA DOCUMENTI -->
+  <div id="docsModal" class="hidden fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg font-bold">Cartella Documenti</h2>
+          <p id="docsPatientLabel" class="text-xs text-slate-500"></p>
+        </div>
+        <button id="closeDocsModal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold">✕</button>
+      </div>
+
+      <!-- Carica documento -->
+      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3 mb-4 space-y-2.5">
+        <div class="grid grid-cols-2 gap-2">
+          <input id="docTitle" type="text" placeholder="Titolo (es. RX Torace)" class="px-3 py-2 rounded-xl border border-slate-300 text-xs bg-white" />
+          <select id="docCategory" class="px-2.5 py-2 rounded-xl border border-slate-300 text-xs bg-white">
+            <option>Referto</option>
+            <option>Esami</option>
+            <option>Imaging</option>
+            <option>Consulenza</option>
+            <option>Terapia</option>
+            <option>Altro</option>
+          </select>
+        </div>
+        <input id="docFile" type="file" accept="image/*,.pdf,.txt" class="block w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-600 file:text-white" />
+        <p id="docUploadStatus" class="hidden text-xs font-medium text-sky-700"></p>
+      </div>
+
+      <!-- Lista documenti -->
+      <div id="docsList" class="space-y-2.5"></div>
+    </div>
+  </div>
+
+  <!-- MODALE ANTEPRIMA DOCUMENTO -->
+  <div id="previewModal" class="hidden fixed inset-0 z-[60] bg-black/90 flex flex-col p-4">
+    <div class="flex items-center justify-between text-white mb-3">
+      <span id="previewTitle" class="text-sm font-bold truncate"></span>
+      <div class="flex gap-2">
+        <a id="previewDownload" download class="px-3 py-1.5 rounded-lg bg-sky-600 text-xs font-bold">Scarica</a>
+        <button id="closePreview" class="px-3 py-1.5 rounded-lg bg-slate-700 text-xs font-bold">Chiudi</button>
+      </div>
+    </div>
+    <div id="previewBody" class="flex-1 flex items-center justify-center overflow-auto"></div>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast" class="hidden fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] bg-slate-900 text-white text-xs font-semibold px-4 py-2.5 rounded-full shadow-lg"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAROgIJ_L5h_tPe_25oHDWg0bncxYeHPBs",
+      authDomain: "np1-166b9.firebaseapp.com",
+      projectId: "np1-166b9",
+      storageBucket: "np1-166b9.firebasestorage.app",
+      messagingSenderId: "482845682443",
+      appId: "1:482845682443:web:1953124ea279376cbed00e"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    let patients = [];
+    let documents = [];
+    let currentFilter = 'all';
+    let modalRequests = [];
+    let activeDocsPatientId = null;
+    let unsubPatients = null;
+    let unsubDocs = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function showToast(msg) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.classList.remove('hidden');
+      setTimeout(() => t.classList.add('hidden'), 2400);
+    }
+
+    // AUTH
+    $('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('loginError').classList.add('hidden');
+      $('loginBtn').textContent = 'Accesso...';
+      try {
+        await signInWithEmailAndPassword(auth, $('loginEmail').value.trim(), $('loginPassword').value);
+      } catch (err) {
+        $('loginError').textContent = 'Credenziali non valide o utente non abilitato.';
+        $('loginError').classList.remove('hidden');
+      } finally {
+        $('loginBtn').textContent = 'Accedi';
+      }
+    });
+
+    $('logoutBtn').addEventListener('click', () => signOut(auth));
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        $('loginView').classList.add('hidden');
+        $('appView').classList.remove('hidden');
+        $('userEmailBadge').textContent = user.email;
+        startListeners();
+      } else {
+        if (unsubPatients) unsubPatients();
+        if (unsubDocs) unsubDocs();
+        $('appView').classList.add('hidden');
+        $('loginView').classList.remove('hidden');
+      }
+    });
+
+    function startListeners() {
+      unsubPatients = onSnapshot(collection(db, 'patients'), (snap) => {
+        patients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderPatients();
+      });
+      unsubDocs = onSnapshot(collection(db, 'documents'), (snap) => {
+        documents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderPatients();
+        if (activeDocsPatientId) renderDocsModal();
+      });
+    }
+
+    // HELPERS
+    function calcDays(dateStr) {
+      if (!dateStr) return null;
+      const diff = Math.floor((new Date() - new Date(dateStr)) / 86400000);
+      return diff >= 0 ? diff : 0;
+    }
+
+    function calcAgeFromDob(dob) {
+      if (!dob) return '';
+      const b = new Date(dob), t = new Date();
+      let age = t.getFullYear() - b.getFullYear();
+      if (t.getMonth() < b.getMonth() || (t.getMonth() === b.getMonth() && t.getDate() < b.getDate())) age--;
+      return age >= 0 ? age : '';
+    }
+
+    $('pDob').addEventListener('change', () => {
+      const a = calcAgeFromDob($('pDob').value);
+      if (a !== '') $('pAge').value = a;
+    });
+
+    document.querySelectorAll('.bed-btn').forEach(btn => {
+      btn.addEventListener('click', () => { $('pBed').value = btn.dataset.bed; });
+    });
+
+    // FILTRI E RICERCA
+    $('searchInput').addEventListener('input', renderPatients);
+    document.querySelectorAll('.filter-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        currentFilter = chip.dataset.filter;
+        document.querySelectorAll('.filter-chip').forEach(c => {
+          c.className = 'filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ' +
+            (c === chip ? 'bg-sky-600 text-white' : 'bg-slate-800 text-slate-300');
+        });
+        renderPatients();
+      });
+    });
+
+    const statusBadge = {
+      stabile: 'bg-emerald-100 text-emerald-800',
+      rivalutare: 'bg-amber-100 text-amber-800',
+      critico: 'bg-rose-100 text-rose-800',
+      dimissione: 'bg-sky-100 text-sky-800'
+    };
+    const statusLabel = { stabile: 'Stabile', rivalutare: 'Da rivalutare', critico: 'Critico', dimissione: 'In dimissione' };
+
+    function renderPatients() {
+      const q = $('searchInput').value.trim().toLowerCase();
+      let openReqTotal = 0;
+      patients.forEach(p => openReqTotal += (p.requests || []).filter(r => !r.done).length);
+      $('statTotal').textContent = patients.length;
+      $('statCritical').textContent = patients.filter(p => p.status === 'critico').length;
+      $('statRequests').textContent = openReqTotal;
+
+      const filtered = patients
+        .filter(p => {
+          if (currentFilter === 'guardia') return (p.guardia && p.guardia.trim()) || p.status === 'critico';
+          if (currentFilter !== 'all' && p.status !== currentFilter) return false;
+          if (!q) return true;
+          const hay = `${p.room} ${p.bed} ${p.name || ''} ${p.diagnosis || ''} ${p.guardia || ''}`.toLowerCase();
+          return hay.includes(q);
+        })
+        .sort((a, b) => (Number(a.room) - Number(b.room)) || (Number(a.bed) - Number(b.bed)));
+
+      $('emptyState').classList.toggle('hidden', patients.length > 0);
+      const list = $('patientList');
+      list.innerHTML = '';
+
+      filtered.forEach(p => {
+        const docsCount = documents.filter(d => d.patientId === p.id).length;
+        const reqs = p.requests || [];
+        const openCount = reqs.filter(r => !r.done).length;
+        const days = calcDays(p.admitDate);
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-2xl p-3.5 shadow-sm border ${p.status === 'critico' ? 'border-rose-300' : 'border-slate-200'}`;
+
+        card.innerHTML = `
+          <div class="flex items-start justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-bold">St. ${p.room} · L.${p.bed}</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${statusBadge[p.status] || statusBadge.stabile}">${statusLabel[p.status] || 'Stabile'}</span>
+              ${days !== null ? `<span class="text-[11px] text-slate-400 font-medium">${days}g</span>` : ''}
+            </div>
+            <div class="flex gap-1.5">
+              <button data-docs="${p.id}" class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold">📁 ${docsCount}</button>
+              <button data-edit="${p.id}" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">Modifica</button>
+            </div>
+          </div>
+
+          <div class="mb-1.5">
+            <span class="font-bold text-sm text-slate-900">${p.name || 'Paziente anonimo'}</span>
+            <span class="text-xs text-slate-500 ml-1">${p.sex || ''}${p.age ? ', ' + p.age + 'a' : ''}</span>
+          </div>
+
+          <p class="text-xs text-slate-700 leading-relaxed mb-2">${p.diagnosis || ''}</p>
+
+          ${p.guardia ? `<div class="bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 mb-2 text-xs text-amber-900"><span class="font-bold">🌙 Guardia:</span> ${p.guardia}</div>` : ''}
+
+          ${reqs.length ? `
+            <div class="pt-2 border-t border-slate-100 space-y-1.5">
+              <div class="text-[11px] font-semibold text-slate-400">${openCount} ${openCount === 1 ? 'richiesta aperta' : 'richieste aperte'}</div>
+              ${reqs.map((r, idx) => `
+                <label class="flex items-center gap-2 text-xs ${r.done ? 'line-through text-slate-400' : 'text-slate-800'}">
+                  <input type="checkbox" data-toggle-p="${p.id}" data-toggle-i="${idx}" ${r.done ? 'checked' : ''} class="w-4 h-4 rounded accent-sky-600" />
+                  <span>${r.text}</span>
+                </label>
+              `).join('')}
+            </div>
+          ` : ''}
+        `;
+        list.appendChild(card);
+      });
+
+      list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openPatientModal(b.dataset.edit)));
+      list.querySelectorAll('[data-docs]').forEach(b => b.addEventListener('click', () => openDocsModal(b.dataset.docs)));
+      list.querySelectorAll('[data-toggle-p]').forEach(cb => cb.addEventListener('change', async () => {
+        const p = patients.find(x => x.id === cb.dataset.toggleP);
+        if (!p) return;
+        const updated = (p.requests || []).map((r, i) => i === Number(cb.dataset.toggleI) ? { ...r, done: cb.checked } : r);
+        await updateDoc(doc(db, 'patients', p.id), { requests: updated });
+      }));
+    }
+
+    // MODALE PAZIENTE
+    function openPatientModal(id = null) {
+      $('patientForm').reset();
+      $('pId').value = id || '';
+      modalRequests = [];
+      if (id) {
+        const p = patients.find(x => x.id === id);
+        if (!p) return;
+        $('modalTitle').textContent = `Stanza ${p.room} · Letto ${p.bed}`;
+        $('pRoom').value = p.room;
+        $('pBed').value = p.bed;
+        $('pName').value = p.name || '';
+        $('pDob').value = p.dob || '';
+        $('pAge').value = p.age || '';
+        $('pSex').value = p.sex || 'M';
+        $('pStatus').value = p.status || 'stabile';
+        $('pAdmit').value = p.admitDate || '';
+        $('pDiagnosis').value = p.diagnosis || '';
+        $('pGuardia').value = p.guardia || '';
+        modalRequests = JSON.parse(JSON.stringify(p.requests || []));
+        $('dischargeBtn').classList.remove('hidden');
+      } else {
+        $('modalTitle').textContent = 'Nuovo Paziente';
+        $('pAdmit').value = new Date().toISOString().split('T')[0];
+        $('dischargeBtn').classList.add('hidden');
+      }
+      renderModalRequests();
+      $('patientModal').classList.remove('hidden');
+    }
+
+    function renderModalRequests() {
+      const c = $('modalRequestsList');
+      c.innerHTML = modalRequests.map((r, i) => `
+        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-xl text-xs">
+          <span class="${r.done ? 'line-through text-slate-400' : ''}">${r.text}</span>
+          <button type="button" data-del-req="${i}" class="text-rose-500 font-bold ml-2">✕</button>
+        </div>
+      `).join('');
+      c.querySelectorAll('[data-del-req]').forEach(b => b.addEventListener('click', () => {
+        modalRequests.splice(Number(b.dataset.delReq), 1);
+        renderModalRequests();
+      }));
+    }
+
+    $('addRequestBtn').addEventListener('click', () => {
+      const v = $('newRequestInput').value.trim();
+      if (!v) return;
+      modalRequests.push({ text: v, done: false });
+      $('newRequestInput').value = '';
+      renderModalRequests();
+    });
+
+    $('addPatientBtn').addEventListener('click', () => openPatientModal());
+    $('closePatientModal').addEventListener('click', () => $('patientModal').classList.add('hidden'));
+
+    $('patientForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const data = {
+        room: Number($('pRoom').value),
+        bed: Number($('pBed').value),
+        name: $('pName').value.trim(),
+        dob: $('pDob').value,
+        age: $('pAge').value ? Number($('pAge').value) : null,
+        sex: $('pSex').value,
+        status: $('pStatus').value,
+        admitDate: $('pAdmit').value,
+        diagnosis: $('pDiagnosis').value.trim(),
+        guardia: $('pGuardia').value.trim(),
+        requests: modalRequests,
+        updatedAt: Date.now()
+      };
+      const id = $('pId').value;
+      if (id) {
+        await updateDoc(doc(db, 'patients', id), data);
+        showToast('Scheda aggiornata');
+      } else {
+        await addDoc(collection(db, 'patients'), data);
+        showToast('Paziente aggiunto');
+      }
+      $('patientModal').classList.add('hidden');
+    });
+
+    $('dischargeBtn').addEventListener('click', async () => {
+      const id = $('pId').value;
+      if (!id || !confirm('Dimettere il paziente ed eliminare definitivamente scheda e documenti?')) return;
+      const snap = await getDocs(query(collection(db, 'documents'), where('patientId', '==', id)));
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+      await deleteDoc(doc(db, 'patients', id));
+      $('patientModal').classList.add('hidden');
+      showToast('Letto svuotato');
+    });
+
+    // CARTELLA DOCUMENTI
+    function openDocsModal(patientId) {
+      activeDocsPatientId = patientId;
+      const p = patients.find(x => x.id === patientId);
+      $('docsPatientLabel').textContent = p ? `Stanza ${p.room} · Letto ${p.bed} — ${p.name || 'Anonimo'}` : '';
+      $('docTitle').value = '';
+      $('docFile').value = '';
+      $('docUploadStatus').classList.add('hidden');
+      renderDocsModal();
+      $('docsModal').classList.remove('hidden');
+    }
+
+    $('closeDocsModal').addEventListener('click', () => {
+      activeDocsPatientId = null;
+      $('docsModal').classList.add('hidden');
+    });
+
+    function compressImage(file) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+        reader.onload = (e) => { img.src = e.target.result; };
+        img.onload = () => {
+          const max = 1200;
+          let w = img.width, h = img.height;
+          if (w > max || h > max) {
+            if (w > h) { h = Math.round(h * max / w); w = max; }
+            else { w = Math.round(w * max / h); h = max; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.72));
+        };
+        img.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    $('docFile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file || !activeDocsPatientId) return;
+      const status = $('docUploadStatus');
+      status.classList.remove('hidden');
+      status.textContent = 'Caricamento in corso...';
+
+      try {
+        let dataUrl = '';
+        if (file.type.startsWith('image/')) {
+          dataUrl = await compressImage(file);
+        } else {
+          if (file.size > 700 * 1024) {
+            alert('Il file supera i 700 KB. Per PDF pesanti riduci la dimensione o fai uno screenshot.');
+            status.classList.add('hidden');
+            return;
+          }
+          dataUrl = await new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result);
+            r.onerror = rej;
+            r.readAsDataURL(file);
+          });
+        }
+        await addDoc(collection(db, 'documents'), {
+          patientId: activeDocsPatientId,
+          title: $('docTitle').value.trim() || file.name,
+          category: $('docCategory').value,
+          mimeType: file.type.startsWith('image/') ? 'image/jpeg' : file.type,
+          dataUrl,
+          createdAt: Date.now()
+        });
+        $('docTitle').value = '';
+        $('docFile').value = '';
+        status.classList.add('hidden');
+        showToast('Documento salvato');
+      } catch (err) {
+        status.textContent = 'Errore durante il caricamento.';
+      }
+    });
+
+    function renderDocsModal() {
+      const list = documents.filter(d => d.patientId === activeDocsPatientId).sort((a, b) => b.createdAt - a.createdAt);
+      const c = $('docsList');
+      if (!list.length) {
+        c.innerHTML = '<p class="text-center text-xs text-slate-400 py-6">Nessun documento in cartella.</p>';
+        return;
+      }
+      c.innerHTML = list.map(d => `
+        <div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200 bg-white">
+          <div class="min-w-0">
+            <span class="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-slate-600 mb-0.5">${d.category}</span>
+            <div class="text-xs font-bold text-slate-800 truncate">${d.title}</div>
+          </div>
+          <div class="flex gap-1.5 shrink-0">
+            <button data-open-doc="${d.id}" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold">Apri</button>
+            <button data-del-doc="${d.id}" class="px-2.5 py-1.5 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold">✕</button>
+          </div>
+        </div>
+      `).join('');
+
+      c.querySelectorAll('[data-open-doc]').forEach(b => b.addEventListener('click', () => {
+        const d = documents.find(x => x.id === b.dataset.openDoc);
+        if (!d) return;
+        $('previewTitle').textContent = d.title;
+        $('previewDownload').href = d.dataUrl;
+        $('previewDownload').download = d.title;
+        $('previewBody').innerHTML = d.mimeType?.startsWith('image/')
+          ? `<img src="${d.dataUrl}" class="max-h-full max-w-full rounded-xl object-contain" />`
+          : `<iframe src="${d.dataUrl}" class="w-full h-full bg-white rounded-xl"></iframe>`;
+        $('previewModal').classList.remove('hidden');
+      }));
+
+      c.querySelectorAll('[data-del-doc]').forEach(b => b.addEventListener('click', async () => {
+        if (confirm('Eliminare questo documento?')) {
+          await deleteDoc(doc(db, 'documents', b.dataset.delDoc));
+          showToast('Documento eliminato');
+        }
+      }));
+    }
+
+    $('closePreview').addEventListener('click', () => $('previewModal').classList.add('hidden'));
+
+    // COPIA GUARDIA
+    $('copyGuardiaBtn').addEventListener('click', async () => {
+      const relevant = patients
+        .filter(p => p.status === 'critico' || p.status === 'rivalutare' || (p.guardia && p.guardia.trim()))
+        .sort((a, b) => (Number(a.room) - Number(b.room)) || (Number(a.bed) - Number(b.bed)));
+      if (!relevant.length) return showToast('Nessuna consegna di guardia');
+      const text = `🌙 CONSEGNE GUARDIA (${new Date().toLocaleDateString('it-IT')})\n\n` + relevant.map(p => {
+        const openReqs = (p.requests || []).filter(r => !r.done).map(r => `  - ${r.text}`).join('\n');
+        return `• St.${p.room} L.${p.bed} (${p.name || 'Anonimo'}, ${p.age || '?'}a) [${statusLabel[p.status]}]\n  Dx: ${p.diagnosis}${p.guardia ? `\n  Guardia: ${p.guardia}` : ''}${openReqs ? `\n  Richieste:\n${openReqs}` : ''}`;
+      }).join('\n\n');
+      await navigator.clipboard.writeText(text);
+      showToast('Riepilogo Guardia copiato!');
+    });
+
+    // SCHEDE DI ESEMPIO
+    $('seedBtn').addEventListener('click', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const samples = [
+        { room: 4, bed: 1, name: 'Mario Rossi', age: 74, sex: 'M', status: 'critico', admitDate: today, diagnosis: 'Scompenso cardiaco acuto in O2 terapia', guardia: 'Controllare diuresi ore 22 e K+ serale', requests: [{ text: 'ECG di controllo', done: false }, { text: 'Consulenza cardiologica', done: true }] },
+        { room: 4, bed: 2, name: 'Lucia Bianchi', age: 68, sex: 'F', status: 'rivalutare', admitDate: today, diagnosis: 'Polmonite basale dx in terapia antibiotica', guardia: 'Se febbre >38°C eseguire emocolture', requests: [{ text: 'RX torace di controllo', done: false }] },
+        { room: 5, bed: 1, name: 'Giuseppe Verdi', age: 59, sex: 'M', status: 'dimissione', admitDate: today, diagnosis: 'Colica renale risolta', guardia: '', requests: [{ text: 'Preparare lettera di dimissione', done: false }] }
+      ];
+      await Promise.all(samples.map(s => addDoc(collection(db, 'patients'), { ...s, updatedAt: Date.now() })));
+      showToast('3 schede di esempio caricate');
+    });
+  </script>
+</body>
+</html>
