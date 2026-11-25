@@ -79,11 +79,12 @@
         </div>
 
         <!-- Ricerca -->
-        <input id="searchInput" type="search" placeholder="Cerca nome, stanza, diagnosi..." class="w-full px-3.5 py-2 rounded-xl bg-slate-800 text-white placeholder-slate-400 text-sm border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-2.5" />
+        <input id="searchInput" type="search" placeholder="Cerca nome, stanza, diagnosi, terapia, giorno..." class="w-full px-3.5 py-2 rounded-xl bg-slate-800 text-white placeholder-slate-400 text-sm border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-2.5" />
 
         <!-- Filtri -->
         <div id="filterBar" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
           <button data-filter="all" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-sky-600 text-white">Tutti</button>
+          <button data-filter="oggi" id="todayFilterBtn" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Oggi</button>
           <button data-filter="critico" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Critici</button>
           <button data-filter="rivalutare" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">Da rivalutare</button>
           <button data-filter="dimissione" class="filter-chip px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap bg-slate-800 text-slate-300">In dimissione</button>
@@ -179,20 +180,41 @@
           <textarea id="pDiagnosis" rows="2" required placeholder="Es. Polmonite basale dx in O2 terapia..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"></textarea>
         </div>
 
+        <!-- SEZIONE TERAPIA -->
         <div>
-          <label class="block text-xs font-semibold text-amber-700 mb-1">Note per la Guardia / Notte</label>
+          <label class="block text-xs font-semibold text-teal-700 mb-1">💊 Terapia in corso</label>
+          <textarea id="pTherapy" rows="3" placeholder="Es. Lasix 20mg ev x2&#10;Ceftriaxone 2g ev/die&#10;Enoxaparina 4000 UI sc ore 20" class="w-full px-3 py-2 rounded-xl border border-teal-300 bg-teal-50/40 text-sm"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-amber-700 mb-1">🌙 Note per la Guardia / Notte</label>
           <textarea id="pGuardia" rows="2" placeholder="Es. Rivalutare EGA alle 22, se febbre emocolture..." class="w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-sm"></textarea>
         </div>
 
-        <!-- Richieste -->
-        <div>
-          <div class="flex items-center justify-between mb-1.5">
-            <label class="text-xs font-semibold text-slate-600">Richieste (esami, consulenze, terapia)</label>
+        <!-- Richieste con Calendario Settimanale Lun-Dom -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-xs font-bold text-slate-700">📅 Richieste (Lun – Dom)</label>
+            <span class="text-[10px] text-slate-400">Seleziona il giorno</span>
           </div>
-          <div id="modalRequestsList" class="space-y-1.5 mb-2"></div>
+
+          <div id="modalRequestsList" class="space-y-1.5 mb-2.5"></div>
+
+          <!-- Selettore giorno Lun - Dom -->
+          <div id="weekPicker" class="grid grid-cols-8 gap-1 mb-2">
+            <button type="button" data-day="" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-slate-900 text-white">—</button>
+            <button type="button" data-day="Lun" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Lun</button>
+            <button type="button" data-day="Mar" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Mar</button>
+            <button type="button" data-day="Mer" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Mer</button>
+            <button type="button" data-day="Gio" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Gio</button>
+            <button type="button" data-day="Ven" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Ven</button>
+            <button type="button" data-day="Sab" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Sab</button>
+            <button type="button" data-day="Dom" class="day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700">Dom</button>
+          </div>
+
           <div class="flex gap-2">
-            <input id="newRequestInput" type="text" placeholder="Nuova richiesta..." class="flex-1 px-3 py-2 rounded-xl border border-slate-300 text-sm" />
-            <button type="button" id="addRequestBtn" class="px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">+ Aggiungi</button>
+            <input id="newRequestInput" type="text" placeholder="Es. Emocromo + PCR..." class="flex-1 px-3 py-2 rounded-xl border border-slate-300 bg-white text-sm" />
+            <button type="button" id="addRequestBtn" class="px-3.5 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">+ Aggiungi</button>
           </div>
         </div>
 
@@ -270,21 +292,32 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
+    const WEEK_DAYS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const DAY_ORDER = { 'Lun': 1, 'Mar': 2, 'Mer': 3, 'Gio': 4, 'Ven': 5, 'Sab': 6, 'Dom': 7, '': 8 };
+    const getTodayShort = () => ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][new Date().getDay()];
+
     let patients = [];
     let documents = [];
     let currentFilter = 'all';
     let modalRequests = [];
+    let selectedReqDay = '';
     let activeDocsPatientId = null;
     let unsubPatients = null;
     let unsubDocs = null;
 
     const $ = (id) => document.getElementById(id);
 
+    $('todayFilterBtn').textContent = `Oggi (${getTodayShort()})`;
+
     function showToast(msg) {
       const t = $('toast');
       t.textContent = msg;
       t.classList.remove('hidden');
       setTimeout(() => t.classList.add('hidden'), 2400);
+    }
+
+    function escapeHtml(str = '') {
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
     // AUTH
@@ -354,6 +387,37 @@
       btn.addEventListener('click', () => { $('pBed').value = btn.dataset.bed; });
     });
 
+    // SELETTORE GIORNO SETTIMANA (LUN - DOM)
+    function updateWeekPickerUI() {
+      const today = getTodayShort();
+      document.querySelectorAll('.day-pick-btn').forEach(btn => {
+        const d = btn.dataset.day;
+        const isSelected = d === selectedReqDay;
+        const isToday = d === today;
+        if (isSelected) {
+          btn.className = 'day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-sky-600 text-white shadow-sm';
+        } else if (isToday) {
+          btn.className = 'day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-sky-50 border border-sky-400 text-sky-700';
+        } else {
+          btn.className = 'day-pick-btn py-1.5 rounded-lg text-[11px] font-bold bg-white border border-slate-200 text-slate-700';
+        }
+      });
+    }
+
+    document.querySelectorAll('.day-pick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedReqDay = btn.dataset.day;
+        updateWeekPickerUI();
+      });
+    });
+
+    function dayBadgeClass(day) {
+      if (!day) return 'bg-slate-100 text-slate-500';
+      if (day === getTodayShort()) return 'bg-sky-600 text-white';
+      if (day === 'Sab' || day === 'Dom') return 'bg-amber-100 text-amber-800';
+      return 'bg-indigo-100 text-indigo-800';
+    }
+
     // FILTRI E RICERCA
     $('searchInput').addEventListener('input', renderPatients);
     document.querySelectorAll('.filter-chip').forEach(chip => {
@@ -377,6 +441,7 @@
 
     function renderPatients() {
       const q = $('searchInput').value.trim().toLowerCase();
+      const today = getTodayShort();
       let openReqTotal = 0;
       patients.forEach(p => openReqTotal += (p.requests || []).filter(r => !r.done).length);
       $('statTotal').textContent = patients.length;
@@ -385,10 +450,14 @@
 
       const filtered = patients
         .filter(p => {
+          if (currentFilter === 'oggi') {
+            return (p.requests || []).some(r => !r.done && r.day === today);
+          }
           if (currentFilter === 'guardia') return (p.guardia && p.guardia.trim()) || p.status === 'critico';
           if (currentFilter !== 'all' && p.status !== currentFilter) return false;
           if (!q) return true;
-          const hay = `${p.room} ${p.bed} ${p.name || ''} ${p.diagnosis || ''} ${p.guardia || ''}`.toLowerCase();
+          const reqHay = (p.requests || []).map(r => `${r.text} ${r.day || ''}`).join(' ');
+          const hay = `${p.room} ${p.bed} ${p.name || ''} ${p.diagnosis || ''} ${p.therapy || ''} ${p.guardia || ''} ${reqHay}`.toLowerCase();
           return hay.includes(q);
         })
         .sort((a, b) => (Number(a.room) - Number(b.room)) || (Number(a.bed) - Number(b.bed)));
@@ -399,7 +468,8 @@
 
       filtered.forEach(p => {
         const docsCount = documents.filter(d => d.patientId === p.id).length;
-        const reqs = p.requests || [];
+        const reqs = (p.requests || []).map((r, origIdx) => ({ ...r, origIdx }))
+          .sort((a, b) => (DAY_ORDER[a.day || ''] || 8) - (DAY_ORDER[b.day || ''] || 8));
         const openCount = reqs.filter(r => !r.done).length;
         const days = calcDays(p.admitDate);
         const card = document.createElement('div');
@@ -419,22 +489,29 @@
           </div>
 
           <div class="mb-1.5">
-            <span class="font-bold text-sm text-slate-900">${p.name || 'Paziente anonimo'}</span>
+            <span class="font-bold text-sm text-slate-900">${escapeHtml(p.name || 'Paziente anonimo')}</span>
             <span class="text-xs text-slate-500 ml-1">${p.sex || ''}${p.age ? ', ' + p.age + 'a' : ''}</span>
           </div>
 
-          <p class="text-xs text-slate-700 leading-relaxed mb-2">${p.diagnosis || ''}</p>
+          <p class="text-xs text-slate-700 leading-relaxed mb-2">${escapeHtml(p.diagnosis || '')}</p>
 
-          ${p.guardia ? `<div class="bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 mb-2 text-xs text-amber-900"><span class="font-bold">🌙 Guardia:</span> ${p.guardia}</div>` : ''}
+          ${p.therapy ? `<div class="bg-teal-50 border border-teal-200 rounded-xl px-2.5 py-1.5 mb-2 text-xs text-teal-950 whitespace-pre-line"><span class="font-bold text-teal-800">💊 Terapia:</span>\n${escapeHtml(p.therapy)}</div>` : ''}
+
+          ${p.guardia ? `<div class="bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 mb-2 text-xs text-amber-900"><span class="font-bold">🌙 Guardia:</span> ${escapeHtml(p.guardia)}</div>` : ''}
 
           ${reqs.length ? `
             <div class="pt-2 border-t border-slate-100 space-y-1.5">
               <div class="text-[11px] font-semibold text-slate-400">${openCount} ${openCount === 1 ? 'richiesta aperta' : 'richieste aperte'}</div>
-              ${reqs.map((r, idx) => `
-                <label class="flex items-center gap-2 text-xs ${r.done ? 'line-through text-slate-400' : 'text-slate-800'}">
-                  <input type="checkbox" data-toggle-p="${p.id}" data-toggle-i="${idx}" ${r.done ? 'checked' : ''} class="w-4 h-4 rounded accent-sky-600" />
-                  <span>${r.text}</span>
-                </label>
+              ${reqs.map((r) => `
+                <div class="flex items-center justify-between gap-2">
+                  <label class="flex items-center gap-2 text-xs flex-1 min-w-0 ${r.done ? 'line-through text-slate-400' : 'text-slate-800'}">
+                    <input type="checkbox" data-toggle-p="${p.id}" data-toggle-i="${r.origIdx}" ${r.done ? 'checked' : ''} class="w-4 h-4 rounded accent-sky-600 shrink-0" />
+                    <span class="truncate">${escapeHtml(r.text)}</span>
+                  </label>
+                  <button type="button" data-cycle-p="${p.id}" data-cycle-i="${r.origIdx}" title="Tocca per cambiare giorno" class="px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${dayBadgeClass(r.day || '')}">
+                    ${r.day || '+ Giorno'}
+                  </button>
+                </div>
               `).join('')}
             </div>
           ` : ''}
@@ -450,6 +527,16 @@
         const updated = (p.requests || []).map((r, i) => i === Number(cb.dataset.toggleI) ? { ...r, done: cb.checked } : r);
         await updateDoc(doc(db, 'patients', p.id), { requests: updated });
       }));
+      list.querySelectorAll('[data-cycle-p]').forEach(btn => btn.addEventListener('click', async () => {
+        const p = patients.find(x => x.id === btn.dataset.cycleP);
+        if (!p) return;
+        const idx = Number(btn.dataset.cycleI);
+        const order = ['', ...WEEK_DAYS];
+        const curDay = (p.requests[idx] && p.requests[idx].day) || '';
+        const nextDay = order[(order.indexOf(curDay) + 1) % order.length];
+        const updated = (p.requests || []).map((r, i) => i === idx ? { ...r, day: nextDay } : r);
+        await updateDoc(doc(db, 'patients', p.id), { requests: updated });
+      }));
     }
 
     // MODALE PAZIENTE
@@ -457,6 +544,7 @@
       $('patientForm').reset();
       $('pId').value = id || '';
       modalRequests = [];
+      selectedReqDay = getTodayShort();
       if (id) {
         const p = patients.find(x => x.id === id);
         if (!p) return;
@@ -470,6 +558,7 @@
         $('pStatus').value = p.status || 'stabile';
         $('pAdmit').value = p.admitDate || '';
         $('pDiagnosis').value = p.diagnosis || '';
+        $('pTherapy').value = p.therapy || '';
         $('pGuardia').value = p.guardia || '';
         modalRequests = JSON.parse(JSON.stringify(p.requests || []));
         $('dischargeBtn').classList.remove('hidden');
@@ -478,18 +567,29 @@
         $('pAdmit').value = new Date().toISOString().split('T')[0];
         $('dischargeBtn').classList.add('hidden');
       }
+      updateWeekPickerUI();
       renderModalRequests();
       $('patientModal').classList.remove('hidden');
     }
 
     function renderModalRequests() {
       const c = $('modalRequestsList');
+      const order = ['', ...WEEK_DAYS];
       c.innerHTML = modalRequests.map((r, i) => `
-        <div class="flex items-center justify-between bg-slate-50 px-3 py-1.5 rounded-xl text-xs">
-          <span class="${r.done ? 'line-through text-slate-400' : ''}">${r.text}</span>
-          <button type="button" data-del-req="${i}" class="text-rose-500 font-bold ml-2">✕</button>
+        <div class="flex items-center justify-between gap-2 bg-white border border-slate-200 px-3 py-1.5 rounded-xl text-xs">
+          <span class="flex-1 truncate ${r.done ? 'line-through text-slate-400' : ''}">${escapeHtml(r.text)}</span>
+          <button type="button" data-modal-day="${i}" class="px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${dayBadgeClass(r.day || '')}">
+            ${r.day || '—'}
+          </button>
+          <button type="button" data-del-req="${i}" class="text-rose-500 font-bold ml-1">✕</button>
         </div>
       `).join('');
+      c.querySelectorAll('[data-modal-day]').forEach(b => b.addEventListener('click', () => {
+        const idx = Number(b.dataset.modalDay);
+        const cur = modalRequests[idx].day || '';
+        modalRequests[idx].day = order[(order.indexOf(cur) + 1) % order.length];
+        renderModalRequests();
+      }));
       c.querySelectorAll('[data-del-req]').forEach(b => b.addEventListener('click', () => {
         modalRequests.splice(Number(b.dataset.delReq), 1);
         renderModalRequests();
@@ -499,7 +599,7 @@
     $('addRequestBtn').addEventListener('click', () => {
       const v = $('newRequestInput').value.trim();
       if (!v) return;
-      modalRequests.push({ text: v, done: false });
+      modalRequests.push({ text: v, day: selectedReqDay, done: false });
       $('newRequestInput').value = '';
       renderModalRequests();
     });
@@ -519,6 +619,7 @@
         status: $('pStatus').value,
         admitDate: $('pAdmit').value,
         diagnosis: $('pDiagnosis').value.trim(),
+        therapy: $('pTherapy').value.trim(),
         guardia: $('pGuardia').value.trim(),
         requests: modalRequests,
         updatedAt: Date.now()
@@ -634,8 +735,8 @@
       c.innerHTML = list.map(d => `
         <div class="flex items-center justify-between gap-2 p-3 rounded-xl border border-slate-200 bg-white">
           <div class="min-w-0">
-            <span class="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-slate-600 mb-0.5">${d.category}</span>
-            <div class="text-xs font-bold text-slate-800 truncate">${d.title}</div>
+            <span class="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-bold text-slate-600 mb-0.5">${escapeHtml(d.category)}</span>
+            <div class="text-xs font-bold text-slate-800 truncate">${escapeHtml(d.title)}</div>
           </div>
           <div class="flex gap-1.5 shrink-0">
             <button data-open-doc="${d.id}" class="px-2.5 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold">Apri</button>
@@ -673,8 +774,8 @@
         .sort((a, b) => (Number(a.room) - Number(b.room)) || (Number(a.bed) - Number(b.bed)));
       if (!relevant.length) return showToast('Nessuna consegna di guardia');
       const text = `🌙 CONSEGNE GUARDIA (${new Date().toLocaleDateString('it-IT')})\n\n` + relevant.map(p => {
-        const openReqs = (p.requests || []).filter(r => !r.done).map(r => `  - ${r.text}`).join('\n');
-        return `• St.${p.room} L.${p.bed} (${p.name || 'Anonimo'}, ${p.age || '?'}a) [${statusLabel[p.status]}]\n  Dx: ${p.diagnosis}${p.guardia ? `\n  Guardia: ${p.guardia}` : ''}${openReqs ? `\n  Richieste:\n${openReqs}` : ''}`;
+        const openReqs = (p.requests || []).filter(r => !r.done).map(r => `  - ${r.day ? '[' + r.day + '] ' : ''}${r.text}`).join('\n');
+        return `• St.${p.room} L.${p.bed} (${p.name || 'Anonimo'}, ${p.age || '?'}a) [${statusLabel[p.status]}]\n  Dx: ${p.diagnosis}${p.therapy ? `\n  Terapia: ${p.therapy.replace(/\n/g, ' | ')}` : ''}${p.guardia ? `\n  Guardia: ${p.guardia}` : ''}${openReqs ? `\n  Richieste:\n${openReqs}` : ''}`;
       }).join('\n\n');
       await navigator.clipboard.writeText(text);
       showToast('Riepilogo Guardia copiato!');
@@ -684,9 +785,9 @@
     $('seedBtn').addEventListener('click', async () => {
       const today = new Date().toISOString().split('T')[0];
       const samples = [
-        { room: 4, bed: 1, name: 'Mario Rossi', age: 74, sex: 'M', status: 'critico', admitDate: today, diagnosis: 'Scompenso cardiaco acuto in O2 terapia', guardia: 'Controllare diuresi ore 22 e K+ serale', requests: [{ text: 'ECG di controllo', done: false }, { text: 'Consulenza cardiologica', done: true }] },
-        { room: 4, bed: 2, name: 'Lucia Bianchi', age: 68, sex: 'F', status: 'rivalutare', admitDate: today, diagnosis: 'Polmonite basale dx in terapia antibiotica', guardia: 'Se febbre >38°C eseguire emocolture', requests: [{ text: 'RX torace di controllo', done: false }] },
-        { room: 5, bed: 1, name: 'Giuseppe Verdi', age: 59, sex: 'M', status: 'dimissione', admitDate: today, diagnosis: 'Colica renale risolta', guardia: '', requests: [{ text: 'Preparare lettera di dimissione', done: false }] }
+        { room: 4, bed: 1, name: 'Mario Rossi', age: 74, sex: 'M', status: 'critico', admitDate: today, diagnosis: 'Scompenso cardiaco acuto in O2 terapia', therapy: 'Lasix 20mg ev x2\nBisoprololo 2.5mg ore 8\nEnoxaparina 4000 UI sc ore 20', guardia: 'Controllare diuresi ore 22 e K+ serale', requests: [{ text: 'ECG di controllo', day: 'Ven', done: false }, { text: 'Consulenza cardiologica', day: 'Gio', done: true }] },
+        { room: 4, bed: 2, name: 'Lucia Bianchi', age: 68, sex: 'F', status: 'rivalutare', admitDate: today, diagnosis: 'Polmonite basale dx in terapia antibiotica', therapy: 'Ceftriaxone 2g ev/die\nAzitromicina 500mg os/die', guardia: 'Se febbre >38°C eseguire emocolture', requests: [{ text: 'RX torace di controllo', day: 'Sab', done: false }] },
+        { room: 5, bed: 1, name: 'Giuseppe Verdi', age: 59, sex: 'M', status: 'dimissione', admitDate: today, diagnosis: 'Colica renale risolta', therapy: 'Paracetamolo 1g al bisogno', guardia: '', requests: [{ text: 'Lettera di dimissione', day: 'Ven', done: false }] }
       ];
       await Promise.all(samples.map(s => addDoc(collection(db, 'patients'), { ...s, updatedAt: Date.now() })));
       showToast('3 schede di esempio caricate');
