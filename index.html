@@ -279,7 +279,7 @@
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // CANALE NOTIFICHE NTFY (iscrivetevi a questo nome nell'app ntfy)
+    // CANALE NOTIFICHE NTFY
     const NTFY_TOPIC = "reparto-np1-x7k9m2p4q8";
 
     const firebaseConfig = {
@@ -344,6 +344,61 @@
       } catch (err) {
         console.warn('Notifica ntfy non inviata:', err);
       }
+    }
+
+    // CONFRONTO DETTAGLIATO MODIFICHE PAZIENTE
+    function buildChangesSummary(oldP, newP) {
+      const changes = [];
+      if (Number(oldP.room) !== Number(newP.room) || Number(oldP.bed) !== Number(newP.bed)) {
+        changes.push(`🛏️ Spostato: St.${oldP.room} L.${oldP.bed} → St.${newP.room} L.${newP.bed}`);
+      }
+      if ((oldP.name || '') !== (newP.name || '')) {
+        changes.push(`👤 Nome: ${newP.name || 'Anonimo'}`);
+      }
+      if ((oldP.status || 'stabile') !== (newP.status || 'stabile')) {
+        changes.push(`🚦 Stato: ${statusLabel[oldP.status] || 'Stabile'} → ${statusLabel[newP.status] || 'Stabile'}`);
+      }
+      if ((oldP.diagnosis || '') !== (newP.diagnosis || '')) {
+        changes.push(`🩺 Diagnosi: ${newP.diagnosis}`);
+      }
+      if ((oldP.therapy || '') !== (newP.therapy || '')) {
+        changes.push(`💊 Terapia: ${newP.therapy ? newP.therapy.replace(/\n/g, ' | ') : '(rimossa)'}`);
+      }
+      if ((oldP.guardia || '') !== (newP.guardia || '')) {
+        changes.push(`🌙 Guardia: ${newP.guardia || '(rimossa)'}`);
+      }
+
+      // Confronto richieste
+      const oldReqs = oldP.requests || [];
+      const newReqs = newP.requests || [];
+      const oldMap = new Map(oldReqs.map(r => [r.text, r]));
+      const newMap = new Map(newReqs.map(r => [r.text, r]));
+
+      newReqs.forEach(r => {
+        if (!oldMap.has(r.text)) {
+          changes.push(`➕ Richiesta: ${r.day ? '[' + r.day + '] ' : ''}${r.text}`);
+        } else {
+          const prev = oldMap.get(r.text);
+          if ((prev.day || '') !== (r.day || '')) {
+            changes.push(`📅 Giorno "${r.text}": ${prev.day || '—'} → ${r.day || '—'}`);
+          }
+          if (Boolean(prev.done) !== Boolean(r.done)) {
+            changes.push(`${r.done ? '✅ Completata' : '🔄 Riaperta'}: ${r.text}`);
+          }
+        }
+      });
+
+      oldReqs.forEach(r => {
+        if (!newMap.has(r.text)) {
+          changes.push(`🗑️ Rimossa richiesta: ${r.text}`);
+        }
+      });
+
+      if ((oldP.dob || '') !== (newP.dob || '') || Number(oldP.age || 0) !== Number(newP.age || 0) || (oldP.sex || '') !== (newP.sex || '')) {
+        changes.push(`📋 Anagrafica aggiornata`);
+      }
+
+      return changes;
     }
 
     // AUTH
@@ -555,8 +610,8 @@
         const updated = (p.requests || []).map((r, i) => i === idx ? { ...r, done: cb.checked } : r);
         await updateDoc(doc(db, 'patients', p.id), { requests: updated });
         sendNtfy(
-          cb.checked ? 'Richiesta completata' : 'Richiesta riaperta',
-          `St.${p.room} L.${p.bed} - ${p.name || 'Anonimo'}\n${cb.checked ? '✅' : '🔄'} ${reqText} (${currentUserShort()})`
+          `${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+          `${cb.checked ? '✅ Completata' : '🔄 Riaperta'}: ${reqText}\nDa: ${currentUserShort()}`
         );
       }));
       list.querySelectorAll('[data-cycle-p]').forEach(btn => btn.addEventListener('click', async () => {
@@ -564,10 +619,15 @@
         if (!p) return;
         const idx = Number(btn.dataset.cycleI);
         const order = ['', ...WEEK_DAYS];
+        const reqText = p.requests[idx]?.text || '';
         const curDay = (p.requests[idx] && p.requests[idx].day) || '';
         const nextDay = order[(order.indexOf(curDay) + 1) % order.length];
         const updated = (p.requests || []).map((r, i) => i === idx ? { ...r, day: nextDay } : r);
         await updateDoc(doc(db, 'patients', p.id), { requests: updated });
+        sendNtfy(
+          `${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+          `📅 Richiesta "${reqText}": ${curDay || '—'} → ${nextDay || '—'}\nDa: ${currentUserShort()}`
+        );
       }));
     }
 
@@ -657,25 +717,34 @@
         updatedAt: Date.now()
       };
       const id = $('pId').value;
-      const pLabel = `St.${data.room} L.${data.bed} - ${data.name || 'Anonimo'}`;
+      const pTitle = `${data.name || 'Anonimo'} (St.${data.room} L.${data.bed})`;
       const prio = data.status === 'critico' ? 'high' : 'default';
 
       if (id) {
+        const oldP = patients.find(x => x.id === id);
         await updateDoc(doc(db, 'patients', id), data);
         showToast('Scheda aggiornata');
-        sendNtfy(
-          'Scheda aggiornata',
-          `${pLabel} [${statusLabel[data.status]}]\nModificata da ${currentUserShort()}`,
-          prio
-        );
+        if (oldP) {
+          const changes = buildChangesSummary(oldP, data);
+          if (changes.length > 0) {
+            sendNtfy(
+              `Modifica: ${pTitle}`,
+              `${changes.join('\n')}\n— ${currentUserShort()}`,
+              prio
+            );
+          }
+        }
       } else {
         await addDoc(collection(db, 'patients'), data);
         showToast('Paziente aggiunto');
-        sendNtfy(
-          'Nuovo ricovero',
-          `${pLabel} [${statusLabel[data.status]}]\nDx: ${data.diagnosis}\nInserito da ${currentUserShort()}`,
-          prio
-        );
+        const details = [
+          `🚦 Stato: ${statusLabel[data.status]}`,
+          `🩺 Dx: ${data.diagnosis}`,
+          data.therapy ? `💊 Terapia: ${data.therapy.replace(/\n/g, ' | ')}` : '',
+          data.guardia ? `🌙 Guardia: ${data.guardia}` : '',
+          `— ${currentUserShort()}`
+        ].filter(Boolean).join('\n');
+        sendNtfy(`Nuovo ricovero: ${pTitle}`, details, prio);
       }
       $('patientModal').classList.add('hidden');
     });
@@ -691,8 +760,8 @@
       showToast('Letto svuotato');
       if (p) {
         sendNtfy(
-          'Paziente dimesso',
-          `St.${p.room} L.${p.bed} - ${p.name || 'Anonimo'} dimesso da ${currentUserShort()}`
+          `Dimesso: ${p.name || 'Anonimo'}`,
+          `🛏️ Svuotato St.${p.room} L.${p.bed}\n— ${currentUserShort()}`
         );
       }
     });
@@ -773,8 +842,8 @@
         const p = patients.find(x => x.id === activeDocsPatientId);
         if (p) {
           sendNtfy(
-            'Nuovo documento',
-            `St.${p.room} L.${p.bed} - ${p.name || 'Anonimo'}\n📁 [${docCat}] ${docTitle} (${currentUserShort()})`
+            `Nuovo documento: ${p.name || 'Anonimo'}`,
+            `St.${p.room} L.${p.bed}\n📁 [${docCat}] ${docTitle}\n— ${currentUserShort()}`
           );
         }
         $('docTitle').value = '';
