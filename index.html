@@ -371,13 +371,13 @@
       </div>
       <div id="therapyList" class="space-y-2"></div>
 
-      <!-- Eventuale terapia precedente a testo libero (retrocompatibilità) -->
-      <div id="legacyTherapyBox" class="hidden mt-4 p-3 rounded-2xl bg-slate-50 border border-slate-200">
-        <div class="flex items-center justify-between gap-2 mb-1.5">
-          <span class="text-[11px] font-bold text-slate-600">Terapia precedente (testo libero)</span>
-          <button type="button" id="clearLegacyTherapyBtn" class="text-[11px] font-bold text-rose-600">Rimuovi</button>
+      <!-- Terapia a testo libero (sempre visibile per tutti i pazienti) -->
+      <div class="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+        <div class="flex items-center justify-between gap-2">
+          <label for="freeTherapyInput" class="text-xs font-bold text-slate-700">📝 Terapia a testo libero / Note</label>
+          <button type="button" id="saveFreeTherapyBtn" class="px-3 py-1 rounded-lg bg-teal-700 text-white text-[11px] font-bold active:scale-95 transition">Salva testo</button>
         </div>
-        <p id="legacyTherapyText" class="text-xs text-slate-700 whitespace-pre-line"></p>
+        <textarea id="freeTherapyInput" rows="3" placeholder="Scrivi qui eventuali terapie a testo libero, schemi complessi o note..." class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"></textarea>
       </div>
     </div>
   </div>
@@ -466,7 +466,7 @@
     let currentFilter = 'all';
     let modalRequests = [];
     let selectedReqDay = '';
-    let cardSelectedDay = {}; // { [patientId]: 'Lun' | ... | null }
+    let cardSelectedDay = {};
     let activeDocsPatientId = null;
     let activeTherapyPatientId = null;
     let activeExamPatientId = null;
@@ -575,7 +575,6 @@
       const pTitle = `${newP.name || 'Anonimo'} (St.${newP.room} L.${newP.bed})`;
       const user = escapeHtml(currentUserShort());
 
-      // 1. Modifica Diagnosi
       if ((oldP.diagnosis || '').trim() !== (newP.diagnosis || '').trim()) {
         await sendTelegram(
           `🩺 Modifica Diagnosi: ${pTitle}`,
@@ -583,7 +582,6 @@
         );
       }
 
-      // 2. Modifica Note Guardia
       if ((oldP.guardia || '').trim() !== (newP.guardia || '').trim()) {
         await sendTelegram(
           `🌙 Modifica Note Guardia: ${pTitle}`,
@@ -591,7 +589,6 @@
         );
       }
 
-      // 3. Modifica Calendario / Richieste
       const oldReqs = oldP.requests || [];
       const newReqs = newP.requests || [];
       const oldMap = new Map(oldReqs.map(r => [r.text, r]));
@@ -623,7 +620,6 @@
         );
       }
 
-      // 4. Altre modifiche (Stato, Letto, Anagrafica)
       const otherChanges = [];
       if (Number(oldP.room) !== Number(newP.room) || Number(oldP.bed) !== Number(newP.bed)) {
         otherChanges.push(`🛏️ Spostato: St.${oldP.room} L.${oldP.bed} → St.${newP.room} L.${newP.bed}`);
@@ -806,7 +802,6 @@
       const today = getTodayShort();
       const selDay = cardSelectedDay[p.id] || null;
 
-      // Calcola contatori per ciascuno dei 7 giorni
       const dayStats = {};
       WEEK_DAYS.forEach(d => {
         const items = reqs.filter(r => r.day === d);
@@ -1002,7 +997,6 @@
       list.querySelectorAll('[data-therapy]').forEach(b => b.addEventListener('click', () => openTherapyModal(b.dataset.therapy)));
       list.querySelectorAll('[data-exam]').forEach(b => b.addEventListener('click', () => openExamModal(b.dataset.exam)));
 
-      // Selezione giorno nel calendario sulla card
       list.querySelectorAll('[data-cal-day]').forEach(btn => btn.addEventListener('click', () => {
         const pid = btn.dataset.calP;
         const d = btn.dataset.calDay;
@@ -1010,7 +1004,6 @@
         renderPatients();
       }));
 
-      // Aggiunta rapida attività direttamente dal giorno selezionato nel calendario
       list.querySelectorAll('[data-quick-req-p]').forEach(form => form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const pid = form.dataset.quickReqP;
@@ -1200,6 +1193,8 @@
     function openTherapyModal(patientId) {
       activeTherapyPatientId = patientId;
       resetTherapyForm();
+      const p = patients.find(x => x.id === patientId);
+      $('freeTherapyInput').value = (p && p.therapy) ? p.therapy : '';
       renderTherapyModal();
       $('therapyModal').classList.remove('hidden');
     }
@@ -1279,12 +1274,8 @@
         }));
       }
 
-      // Retrocompatibilità eventuale vecchia terapia a testo libero
-      if (p.therapy && p.therapy.trim()) {
-        $('legacyTherapyBox').classList.remove('hidden');
-        $('legacyTherapyText').textContent = p.therapy;
-      } else {
-        $('legacyTherapyBox').classList.add('hidden');
+      if (document.activeElement !== $('freeTherapyInput')) {
+        $('freeTherapyInput').value = p.therapy || '';
       }
     }
 
@@ -1337,10 +1328,18 @@
       }
     });
 
-    $('clearLegacyTherapyBtn').addEventListener('click', async () => {
-      if (!activeTherapyPatientId || !confirm('Eliminare il vecchio testo libero della terapia?')) return;
-      await updateDoc(doc(db, 'patients', activeTherapyPatientId), { therapy: '', updatedAt: Date.now() });
-      showToast('Vecchia nota terapia rimossa');
+    $('saveFreeTherapyBtn').addEventListener('click', async () => {
+      if (!activeTherapyPatientId) return;
+      const p = patients.find(x => x.id === activeTherapyPatientId);
+      if (!p) return;
+      const text = $('freeTherapyInput').value.trim();
+      await updateDoc(doc(db, 'patients', p.id), { therapy: text, updatedAt: Date.now() });
+      showToast('Testo libero salvato');
+      const pTitle = `${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`;
+      await sendTelegram(
+        `💊 Terapia (testo libero): ${pTitle}`,
+        `${text ? escapeHtml(text) : '<i>(Testo libero rimosso)</i>'}\n— <i>${escapeHtml(currentUserShort())}</i>`
+      );
     });
 
     // ==========================================
@@ -1688,3 +1687,4 @@
   </script>
 </body>
 </html>
+
