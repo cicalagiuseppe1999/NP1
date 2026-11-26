@@ -279,6 +279,9 @@
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+    // CANALE NOTIFICHE NTFY (iscrivetevi a questo nome nell'app ntfy)
+    const NTFY_TOPIC = "reparto-np1-x7k9m2p4q8";
+
     const firebaseConfig = {
       apiKey: "AIzaSyAROgIJ_L5h_tPe_25oHDWg0bncxYeHPBs",
       authDomain: "np1-166b9.firebaseapp.com",
@@ -318,6 +321,29 @@
 
     function escapeHtml(str = '') {
       return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+
+    function currentUserShort() {
+      const email = auth.currentUser?.email || '';
+      return email.split('@')[0] || 'Specializzando';
+    }
+
+    // INVIO NOTIFICA NTFY
+    async function sendNtfy(title, message, priority = 'default') {
+      if (!NTFY_TOPIC) return;
+      try {
+        await fetch(`https://ntfy.sh/${encodeURIComponent(NTFY_TOPIC)}`, {
+          method: 'POST',
+          headers: {
+            'Title': title,
+            'Priority': priority,
+            'Tags': 'hospital'
+          },
+          body: message
+        });
+      } catch (err) {
+        console.warn('Notifica ntfy non inviata:', err);
+      }
     }
 
     // AUTH
@@ -524,8 +550,14 @@
       list.querySelectorAll('[data-toggle-p]').forEach(cb => cb.addEventListener('change', async () => {
         const p = patients.find(x => x.id === cb.dataset.toggleP);
         if (!p) return;
-        const updated = (p.requests || []).map((r, i) => i === Number(cb.dataset.toggleI) ? { ...r, done: cb.checked } : r);
+        const idx = Number(cb.dataset.toggleI);
+        const reqText = p.requests[idx]?.text || '';
+        const updated = (p.requests || []).map((r, i) => i === idx ? { ...r, done: cb.checked } : r);
         await updateDoc(doc(db, 'patients', p.id), { requests: updated });
+        sendNtfy(
+          cb.checked ? 'Richiesta completata' : 'Richiesta riaperta',
+          `St.${p.room} L.${p.bed} - ${p.name || 'Anonimo'}\n${cb.checked ? '✅' : '🔄'} ${reqText} (${currentUserShort()})`
+        );
       }));
       list.querySelectorAll('[data-cycle-p]').forEach(btn => btn.addEventListener('click', async () => {
         const p = patients.find(x => x.id === btn.dataset.cycleP);
@@ -625,12 +657,25 @@
         updatedAt: Date.now()
       };
       const id = $('pId').value;
+      const pLabel = `St.${data.room} L.${data.bed} - ${data.name || 'Anonimo'}`;
+      const prio = data.status === 'critico' ? 'high' : 'default';
+
       if (id) {
         await updateDoc(doc(db, 'patients', id), data);
         showToast('Scheda aggiornata');
+        sendNtfy(
+          'Scheda aggiornata',
+          `${pLabel} [${statusLabel[data.status]}]\nModificata da ${currentUserShort()}`,
+          prio
+        );
       } else {
         await addDoc(collection(db, 'patients'), data);
         showToast('Paziente aggiunto');
+        sendNtfy(
+          'Nuovo ricovero',
+          `${pLabel} [${statusLabel[data.status]}]\nDx: ${data.diagnosis}\nInserito da ${currentUserShort()}`,
+          prio
+        );
       }
       $('patientModal').classList.add('hidden');
     });
@@ -638,11 +683,18 @@
     $('dischargeBtn').addEventListener('click', async () => {
       const id = $('pId').value;
       if (!id || !confirm('Dimettere il paziente ed eliminare definitivamente scheda e documenti?')) return;
+      const p = patients.find(x => x.id === id);
       const snap = await getDocs(query(collection(db, 'documents'), where('patientId', '==', id)));
       await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
       await deleteDoc(doc(db, 'patients', id));
       $('patientModal').classList.add('hidden');
       showToast('Letto svuotato');
+      if (p) {
+        sendNtfy(
+          'Paziente dimesso',
+          `St.${p.room} L.${p.bed} - ${p.name || 'Anonimo'} dimesso da ${currentUserShort()}`
+        );
+      }
     });
 
     // CARTELLA DOCUMENTI
@@ -708,14 +760,23 @@
             r.readAsDataURL(file);
           });
         }
+        const docTitle = $('docTitle').value.trim() || file.name;
+        const docCat = $('docCategory').value;
         await addDoc(collection(db, 'documents'), {
           patientId: activeDocsPatientId,
-          title: $('docTitle').value.trim() || file.name,
-          category: $('docCategory').value,
+          title: docTitle,
+          category: docCat,
           mimeType: file.type.startsWith('image/') ? 'image/jpeg' : file.type,
           dataUrl,
           createdAt: Date.now()
         });
+        const p = patients.find(x => x.id === activeDocsPatientId);
+        if (p) {
+          sendNtfy(
+            'Nuovo documento',
+            `St.${p.room} L.${p.bed} - ${p.name || 'Anonimo'}\n📁 [${docCat}] ${docTitle} (${currentUserShort()})`
+          );
+        }
         $('docTitle').value = '';
         $('docFile').value = '';
         status.classList.add('hidden');
