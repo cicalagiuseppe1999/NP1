@@ -52,12 +52,13 @@
     <header class="sticky top-0 z-30 bg-slate-900 text-white px-4 pt-3 pb-3 shadow-md">
       <div class="max-w-2xl mx-auto">
         <div class="flex items-center justify-between gap-2 mb-3">
-          <div>
+          <div class="min-w-0">
             <h1 class="text-lg font-bold leading-tight">Consegne Reparto</h1>
-            <p id="userEmailBadge" class="text-[11px] text-slate-400 truncate max-w-[180px]"></p>
+            <p id="userEmailBadge" class="text-[11px] text-slate-400 truncate max-w-[150px]"></p>
           </div>
-          <div class="flex items-center gap-2">
-            <button id="copyGuardiaBtn" class="px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold active:scale-95 transition">Copia Guardia</button>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button id="testNtfyBtn" title="Test Notifica" class="px-2.5 py-1.5 rounded-xl bg-slate-800 text-amber-400 text-xs font-bold border border-slate-700 active:scale-95 transition">🔔</button>
+            <button id="copyGuardiaBtn" class="px-2.5 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold active:scale-95 transition">Copia Guardia</button>
             <button id="logoutBtn" class="px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">Esci</button>
           </div>
         </div>
@@ -328,57 +329,72 @@
       return email.split('@')[0] || 'Specializzando';
     }
 
-    // INVIO NOTIFICA NTFY
-    async function sendNtfy(title, message, priority = 'default', tags = 'hospital') {
-      if (!NTFY_TOPIC) return;
+    // INVIO NOTIFICA NTFY VIA JSON (ZERO BLOCCHI CORS / ACCENTI)
+    async function sendNtfy(title, message, priority = 3, tags = ['hospital']) {
+      if (!NTFY_TOPIC) return false;
       try {
-        await fetch(`https://ntfy.sh/${encodeURIComponent(NTFY_TOPIC)}`, {
+        const res = await fetch('https://ntfy.sh', {
           method: 'POST',
-          headers: {
-            'Title': title,
-            'Priority': priority,
-            'Tags': tags
-          },
-          body: message
+          body: JSON.stringify({
+            topic: NTFY_TOPIC,
+            title: title,
+            message: message,
+            priority: priority,
+            tags: Array.isArray(tags) ? tags : [tags]
+          })
         });
+        return res.ok;
       } catch (err) {
-        console.warn('Notifica ntfy non inviata:', err);
+        console.warn('Errore ntfy:', err);
+        return false;
       }
     }
 
+    // TASTO TEST NOTIFICA
+    $('testNtfyBtn').addEventListener('click', async () => {
+      showToast('Invio notifica di prova...');
+      const ok = await sendNtfy(
+        'Test Consegne Reparto',
+        `Notifiche attive! Inviata da ${currentUserShort()}`,
+        3,
+        ['bell']
+      );
+      showToast(ok ? 'Notifica di prova inviata!' : 'Errore invio notifica');
+    });
+
     // INVIA NOTIFICHE SPECIFICHE PER OGNI SEZIONE MODIFICATA
-    function sendSectionNotifications(oldP, newP) {
+    async function sendSectionNotifications(oldP, newP) {
       const pTitle = `${newP.name || 'Anonimo'} (St.${newP.room} L.${newP.bed})`;
       const user = currentUserShort();
-      const prio = newP.status === 'critico' ? 'high' : 'default';
+      const prio = newP.status === 'critico' ? 4 : 3;
 
       // 1. Modifica Terapia
       if ((oldP.therapy || '').trim() !== (newP.therapy || '').trim()) {
-        sendNtfy(
+        await sendNtfy(
           `Modifica Terapia: ${pTitle}`,
           `${newP.therapy ? newP.therapy : '(Terapia rimossa)'}\n— ${user}`,
           prio,
-          'pill'
+          ['pill']
         );
       }
 
       // 2. Modifica Diagnosi
       if ((oldP.diagnosis || '').trim() !== (newP.diagnosis || '').trim()) {
-        sendNtfy(
+        await sendNtfy(
           `Modifica Diagnosi: ${pTitle}`,
           `${newP.diagnosis}\n— ${user}`,
           prio,
-          'stethoscope'
+          ['stethoscope']
         );
       }
 
       // 3. Modifica Note Guardia
       if ((oldP.guardia || '').trim() !== (newP.guardia || '').trim()) {
-        sendNtfy(
+        await sendNtfy(
           `Modifica Note Guardia: ${pTitle}`,
           `${newP.guardia ? newP.guardia : '(Note guardia rimosse)'}\n— ${user}`,
-          'high',
-          'crescent_moon'
+          4,
+          ['crescent_moon']
         );
       }
 
@@ -408,11 +424,11 @@
         }
       });
       if (reqChanges.length > 0) {
-        sendNtfy(
+        await sendNtfy(
           `Modifica Richieste: ${pTitle}`,
           `${reqChanges.join('\n')}\n— ${user}`,
           prio,
-          'calendar'
+          ['calendar']
         );
       }
 
@@ -428,11 +444,11 @@
         otherChanges.push(`👤 Anagrafica aggiornata`);
       }
       if (otherChanges.length > 0) {
-        sendNtfy(
+        await sendNtfy(
           `Aggiornamento Scheda: ${pTitle}`,
           `${otherChanges.join('\n')}\n— ${user}`,
           prio,
-          'hospital'
+          ['hospital']
         );
       }
     }
@@ -648,8 +664,8 @@
         sendNtfy(
           `Richiesta: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
           `${cb.checked ? '✅ Completata' : '🔄 Riaperta'}: ${reqText}\n— ${currentUserShort()}`,
-          'default',
-          'calendar'
+          3,
+          ['calendar']
         );
       }));
       list.querySelectorAll('[data-cycle-p]').forEach(btn => btn.addEventListener('click', async () => {
@@ -665,8 +681,8 @@
         sendNtfy(
           `Calendario Richieste: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
           `📅 "${reqText}": ${curDay || '—'} → ${nextDay || '—'}\n— ${currentUserShort()}`,
-          'default',
-          'calendar'
+          3,
+          ['calendar']
         );
       }));
     }
@@ -758,18 +774,20 @@
       };
       const id = $('pId').value;
       const pTitle = `${data.name || 'Anonimo'} (St.${data.room} L.${data.bed})`;
-      const prio = data.status === 'critico' ? 'high' : 'default';
+      const prio = data.status === 'critico' ? 4 : 3;
 
       if (id) {
         const oldP = patients.find(x => x.id === id);
         await updateDoc(doc(db, 'patients', id), data);
         showToast('Scheda aggiornata');
+        $('patientModal').classList.add('hidden');
         if (oldP) {
-          sendSectionNotifications(oldP, data);
+          await sendSectionNotifications(oldP, data);
         }
       } else {
         await addDoc(collection(db, 'patients'), data);
         showToast('Paziente aggiunto');
+        $('patientModal').classList.add('hidden');
         const details = [
           `🚦 Stato: ${statusLabel[data.status]}`,
           `🩺 Dx: ${data.diagnosis}`,
@@ -777,9 +795,8 @@
           data.guardia ? `🌙 Guardia: ${data.guardia}` : '',
           `— ${currentUserShort()}`
         ].filter(Boolean).join('\n');
-        sendNtfy(`Nuovo Ricovero: ${pTitle}`, details, prio, 'hospital');
+        await sendNtfy(`Nuovo Ricovero: ${pTitle}`, details, prio, ['hospital']);
       }
-      $('patientModal').classList.add('hidden');
     });
 
     $('dischargeBtn').addEventListener('click', async () => {
@@ -792,11 +809,11 @@
       $('patientModal').classList.add('hidden');
       showToast('Letto svuotato');
       if (p) {
-        sendNtfy(
+        await sendNtfy(
           `Dimesso: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
           `🛏️ Letto svuotato\n— ${currentUserShort()}`,
-          'default',
-          'white_check_mark'
+          3,
+          ['white_check_mark']
         );
       }
     });
@@ -876,11 +893,11 @@
         });
         const p = patients.find(x => x.id === activeDocsPatientId);
         if (p) {
-          sendNtfy(
+          await sendNtfy(
             `Aggiunto Documento: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
             `📁 [${docCat}] ${docTitle}\n— ${currentUserShort()}`,
-            'default',
-            'page_facing_up'
+            3,
+            ['page_facing_up']
           );
         }
         $('docTitle').value = '';
