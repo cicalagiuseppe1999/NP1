@@ -371,6 +371,15 @@
       </div>
       <div id="therapyList" class="space-y-2"></div>
 
+      <!-- Cronologia farmaci sospesi -->
+      <div id="suspendedTherapySection" class="hidden mt-4 pt-3 border-t border-slate-200">
+        <div class="mb-2 flex items-center justify-between">
+          <span class="text-xs font-bold text-slate-600">🕒 Farmaci sospesi</span>
+          <span id="suspendedCountLabel" class="text-[11px] text-slate-400"></span>
+        </div>
+        <div id="suspendedTherapyList" class="space-y-2"></div>
+      </div>
+
       <!-- Terapia a testo libero (sempre visibile per tutti i pazienti) -->
       <div class="mt-4 p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
         <div class="flex items-center justify-between gap-2">
@@ -500,6 +509,15 @@
       const d = new Date(ts);
       return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' +
         d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatSuspendedInfo(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      const dateStr = d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      const days = Math.floor((Date.now() - ts) / 86400000);
+      const daysLabel = days <= 0 ? 'oggi' : (days === 1 ? '1 giorno fa' : `${days} giorni fa`);
+      return `Sospeso il ${dateStr} (${daysLabel})`;
     }
 
     function formatTherapyLine(t) {
@@ -938,7 +956,7 @@
           if (currentFilter !== 'all' && p.status !== currentFilter) return false;
           if (!q) return true;
           const reqHay = (p.requests || []).map(r => `${r.text} ${r.day || ''} ${DAY_FULL[r.day || ''] || ''}`).join(' ');
-          const thHay = (p.therapies || []).map(t => `${t.drug} ${t.dose || ''} ${t.route || ''} ${(t.times || []).join(' ')} ${t.notes || ''}`).join(' ');
+          const thHay = [...(p.therapies || []), ...(p.suspendedTherapies || [])].map(t => `${t.drug} ${t.dose || ''} ${t.route || ''} ${(t.times || []).join(' ')} ${t.notes || ''}`).join(' ');
           const exHay = formatExamLines(p.exam).join(' ');
           const hay = `${p.room} ${p.bed} ${p.name || ''} ${p.diagnosis || ''} ${p.therapy || ''} ${thHay} ${exHay} ${p.guardia || ''} ${reqHay}`.toLowerCase();
           return hay.includes(q);
@@ -1238,7 +1256,7 @@
               </div>
               <div class="flex gap-1 shrink-0">
                 <button type="button" data-edit-th="${t.id}" class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">Modifica</button>
-                <button type="button" data-del-th="${t.id}" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold">✕</button>
+                <button type="button" data-del-th="${t.id}" title="Sospendi farmaco" class="px-2 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold">⏸️</button>
               </div>
             </div>
           </div>
@@ -1262,15 +1280,82 @@
 
         c.querySelectorAll('[data-del-th]').forEach(b => b.addEventListener('click', async () => {
           const item = list.find(x => x.id === b.dataset.delTh);
-          if (!item || !confirm(`Rimuovere "${item.drug}" dalla terapia?`)) return;
-          const updated = list.filter(x => x.id !== item.id);
-          await updateDoc(doc(db, 'patients', p.id), { therapies: updated, updatedAt: Date.now() });
+          if (!item || !confirm(`Sospendere "${item.drug}" e spostarlo in cronologia?`)) return;
+          const updatedActive = list.filter(x => x.id !== item.id);
+          const suspendedItem = {
+            ...item,
+            suspendedAt: Date.now(),
+            suspendedBy: currentUserShort()
+          };
+          const updatedSuspended = [suspendedItem, ...(p.suspendedTherapies || [])];
+          await updateDoc(doc(db, 'patients', p.id), {
+            therapies: updatedActive,
+            suspendedTherapies: updatedSuspended,
+            updatedAt: Date.now()
+          });
           if ($('thEditId').value === item.id) resetTherapyForm();
-          showToast('Farmaco rimosso');
+          showToast('Farmaco sospeso');
           await sendTelegram(
-            `💊 Terapia Rimossa: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
-            `🗑️ ${escapeHtml(formatTherapyLine(item))}\n— <i>${escapeHtml(currentUserShort())}</i>`
+            `💊 Terapia Sospesa: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+            `⏸️ ${escapeHtml(formatTherapyLine(item))}\n— <i>${escapeHtml(currentUserShort())}</i>`
           );
+        }));
+      }
+
+      // Cronologia farmaci sospesi
+      const suspList = [...(p.suspendedTherapies || [])].sort((a, b) => (b.suspendedAt || 0) - (a.suspendedAt || 0));
+      const suspSection = $('suspendedTherapySection');
+      const suspContainer = $('suspendedTherapyList');
+
+      if (!suspList.length) {
+        suspSection.classList.add('hidden');
+      } else {
+        suspSection.classList.remove('hidden');
+        $('suspendedCountLabel').textContent = `${suspList.length}`;
+        suspContainer.innerHTML = suspList.map(t => `
+          <div class="p-2.5 rounded-xl border border-slate-200 bg-slate-50/80">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-xs font-bold text-slate-500 line-through">${escapeHtml(t.drug)}</span>
+                  ${t.dose ? `<span class="text-[10px] font-semibold text-slate-400">Dose: ${escapeHtml(t.dose)}</span>` : ''}
+                  ${t.route ? `<span class="px-1.5 py-0.5 rounded bg-slate-200 text-slate-600 text-[10px] font-bold">${escapeHtml(t.route)}</span>` : ''}
+                </div>
+                <div class="text-[11px] font-semibold text-amber-700 mt-1">
+                  🕒 ${escapeHtml(formatSuspendedInfo(t.suspendedAt))}${t.suspendedBy ? ` · ${escapeHtml(t.suspendedBy)}` : ''}
+                </div>
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <button type="button" data-restore-th="${t.id}" title="Ripristina in terapia attiva" class="px-2 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold">↺</button>
+                <button type="button" data-purge-th="${t.id}" title="Elimina definitivamente" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-500 text-xs font-bold">✕</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        suspContainer.querySelectorAll('[data-restore-th]').forEach(b => b.addEventListener('click', async () => {
+          const item = suspList.find(x => x.id === b.dataset.restoreTh);
+          if (!item) return;
+          const { suspendedAt, suspendedBy, ...cleanItem } = item;
+          await updateDoc(doc(db, 'patients', p.id), {
+            therapies: [...(p.therapies || []), cleanItem],
+            suspendedTherapies: suspList.filter(x => x.id !== item.id),
+            updatedAt: Date.now()
+          });
+          showToast('Farmaco ripristinato');
+          await sendTelegram(
+            `💊 Terapia Ripristinata: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+            `↺ ${escapeHtml(formatTherapyLine(cleanItem))}\n— <i>${escapeHtml(currentUserShort())}</i>`
+          );
+        }));
+
+        suspContainer.querySelectorAll('[data-purge-th]').forEach(b => b.addEventListener('click', async () => {
+          if (!confirm('Eliminare definitivamente questo farmaco dalla cronologia?')) return;
+          await updateDoc(doc(db, 'patients', p.id), {
+            suspendedTherapies: suspList.filter(x => x.id !== b.dataset.purgeTh),
+            updatedAt: Date.now()
+          });
+          showToast('Rimosso dalla cronologia');
         }));
       }
 
@@ -1439,7 +1524,7 @@
           await sendSectionNotifications(oldP, data);
         }
       } else {
-        await addDoc(collection(db, 'patients'), { ...data, therapies: [], exam: {} });
+        await addDoc(collection(db, 'patients'), { ...data, therapies: [], suspendedTherapies: [], exam: {} });
         showToast('Paziente aggiunto');
         $('patientModal').classList.add('hidden');
         const details = [
@@ -1641,6 +1726,7 @@
             { id: 's2', drug: 'Bisoprololo 2,5mg', dose: '1 cpr', route: 'OS', times: ['08'], notes: '' },
             { id: 's3', drug: 'Enoxaparina 4000 UI', dose: '1 sir', route: 'SC', times: ['20'], notes: '' }
           ],
+          suspendedTherapies: [],
           guardia: 'Controllare diuresi ore 22 e K+ serale',
           requests: [
             { text: 'ECG di controllo', day: 'Gio', done: false },
@@ -1664,6 +1750,7 @@
             { id: 's4', drug: 'Ceftriaxone 2g', dose: '1 fl', route: 'EV', times: ['08'], notes: 'in 100ml SF' },
             { id: 's5', drug: 'Aldyxil 300ml', dose: '10 ml', route: 'OS', times: ['08', '20'], notes: '' }
           ],
+          suspendedTherapies: [],
           guardia: 'Se febbre >38°C eseguire emocolture',
           requests: [
             { text: 'PCR + procalcitonina', day: 'Ven', done: false },
@@ -1677,6 +1764,7 @@
           therapies: [
             { id: 's6', drug: 'Paracetamolo 1000mg', dose: '1 cpr', route: 'OS', times: ['Al bisogno'], notes: 'max 3/die' }
           ],
+          suspendedTherapies: [],
           guardia: '',
           requests: [{ text: 'Lettera di dimissione', day: 'Gio', done: false }]
         }
@@ -1687,4 +1775,3 @@
   </script>
 </body>
 </html>
-
