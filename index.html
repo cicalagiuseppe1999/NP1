@@ -57,7 +57,7 @@
             <p id="userEmailBadge" class="text-[11px] text-slate-400 truncate max-w-[150px]"></p>
           </div>
           <div class="flex items-center gap-1.5 shrink-0">
-            <button id="testNtfyBtn" title="Test Notifica" class="px-2.5 py-1.5 rounded-xl bg-slate-800 text-amber-400 text-xs font-bold border border-slate-700 active:scale-95 transition">🔔</button>
+            <button id="testTgBtn" title="Test Notifica Telegram" class="px-2.5 py-1.5 rounded-xl bg-slate-800 text-amber-400 text-xs font-bold border border-slate-700 active:scale-95 transition">🔔</button>
             <button id="copyGuardiaBtn" class="px-2.5 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-bold active:scale-95 transition">Copia Guardia</button>
             <button id="logoutBtn" class="px-2.5 py-1.5 rounded-xl bg-slate-800 text-slate-300 text-xs font-semibold border border-slate-700">Esci</button>
           </div>
@@ -75,12 +75,12 @@
           </div>
           <div class="bg-sky-950/70 border border-sky-800/60 rounded-xl py-1.5 px-2">
             <div id="statRequests" class="text-base font-bold text-sky-400">0</div>
-            <div class="text-[10px] text-sky-300 uppercase tracking-wide">Richieste</div>
+            <div class="text-[10px] text-sky-300 uppercase tracking-wide">Attività</div>
           </div>
         </div>
 
         <!-- Ricerca -->
-        <input id="searchInput" type="search" placeholder="Cerca nome, stanza, diagnosi, terapia, giorno..." class="w-full px-3.5 py-2 rounded-xl bg-slate-800 text-white placeholder-slate-400 text-sm border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-2.5" />
+        <input id="searchInput" type="search" placeholder="Cerca nome, stanza, diagnosi, EO, farmaco, giorno..." class="w-full px-3.5 py-2 rounded-xl bg-slate-800 text-white placeholder-slate-400 text-sm border border-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 mb-2.5" />
 
         <!-- Filtri -->
         <div id="filterBar" class="flex gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
@@ -181,21 +181,15 @@
           <textarea id="pDiagnosis" rows="2" required placeholder="Es. Polmonite basale dx in O2 terapia..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"></textarea>
         </div>
 
-        <!-- SEZIONE TERAPIA -->
-        <div>
-          <label class="block text-xs font-semibold text-teal-700 mb-1">💊 Terapia in corso</label>
-          <textarea id="pTherapy" rows="3" placeholder="Es. Lasix 20mg ev x2&#10;Ceftriaxone 2g ev/die&#10;Enoxaparina 4000 UI sc ore 20" class="w-full px-3 py-2 rounded-xl border border-teal-300 bg-teal-50/40 text-sm"></textarea>
-        </div>
-
         <div>
           <label class="block text-xs font-semibold text-amber-700 mb-1">🌙 Note per la Guardia / Notte</label>
           <textarea id="pGuardia" rows="2" placeholder="Es. Rivalutare EGA alle 22, se febbre emocolture..." class="w-full px-3 py-2 rounded-xl border border-amber-300 bg-amber-50/50 text-sm"></textarea>
         </div>
 
-        <!-- Richieste con Calendario Settimanale Lun-Dom -->
+        <!-- Attività / Richieste con Calendario Settimanale Lun-Dom -->
         <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3">
           <div class="flex items-center justify-between mb-2">
-            <label class="text-xs font-bold text-slate-700">📅 Richieste (Lun – Dom)</label>
+            <label class="text-xs font-bold text-slate-700">📅 Calendario Attività (Lun – Dom)</label>
             <span class="text-[10px] text-slate-400">Seleziona il giorno</span>
           </div>
 
@@ -224,6 +218,167 @@
           <button type="submit" class="flex-1 py-3 rounded-xl bg-sky-600 text-white font-bold text-sm">Salva Scheda</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODALE ESAME OBIETTIVO -->
+  <div id="examModal" class="hidden fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">🩺 Esame Obiettivo</h2>
+          <p id="examPatientLabel" class="text-xs text-slate-500"></p>
+        </div>
+        <button id="closeExamModal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold">✕</button>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <span id="examLastUpdated" class="text-[11px] text-slate-400"></span>
+        <button type="button" id="fillNormalExamBtn" class="px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold active:scale-95 transition">✓ Compila vuoti "nella norma"</button>
+      </div>
+
+      <form id="examForm" class="space-y-3">
+        <!-- Parametri vitali -->
+        <div class="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3">
+          <label class="block text-[11px] font-bold text-emerald-900 mb-2">Parametri vitali</label>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">PA (mmHg)</label>
+              <input id="eoPa" type="text" placeholder="120/80" class="w-full px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">FC (bpm)</label>
+              <input id="eoFc" type="text" inputmode="numeric" placeholder="75" class="w-full px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">SpO2 (%)</label>
+              <input id="eoSpo2" type="text" placeholder="98% AA" class="w-full px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">TC (°C)</label>
+              <input id="eoTc" type="text" inputmode="decimal" placeholder="36.5" class="w-full px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">FR (atti/m)</label>
+              <input id="eoFr" type="text" inputmode="numeric" placeholder="16" class="w-full px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-white text-xs" />
+            </div>
+            <div>
+              <label class="block text-[10px] font-semibold text-slate-600 mb-0.5">Glicemia / Diuresi</label>
+              <input id="eoDiuresi" type="text" placeholder="Valida" class="w-full px-2.5 py-1.5 rounded-xl border border-emerald-200 bg-white text-xs" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Generale / Neurologico</label>
+          <textarea id="eoNeuro" rows="2" placeholder="Es. Vigile, orientato, collaborante, non deficit focali..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Torace / Polmonare</label>
+          <textarea id="eoTorace" rows="2" placeholder="Es. MV normotrasmesso, crepitii basali bilaterali..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Cuore / Cardiovascolare</label>
+          <textarea id="eoCuore" rows="2" placeholder="Es. Toni validi, ritmici, soffio sistolico 2/6..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Addome</label>
+          <textarea id="eoAddome" rows="2" placeholder="Es. Trattabile, non dolente né dolorabile, peristalsi presente..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Estremità / Edemi / Altri reperti</label>
+          <textarea id="eoAltro" rows="2" placeholder="Es. Edemi declivi improntabili, cute normoidratata..." class="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+        </div>
+
+        <div class="pt-1 flex gap-2">
+          <button type="button" id="clearExamBtn" class="px-3 py-2.5 rounded-xl bg-rose-50 text-rose-600 text-xs font-bold">Svuota</button>
+          <button type="submit" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-bold text-sm active:scale-[0.99] transition">Salva Esame Obiettivo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODALE FOGLIO TERAPIA -->
+  <div id="therapyModal" class="hidden fixed inset-0 z-50 bg-slate-950/60 flex items-end sm:items-center justify-center">
+    <div class="bg-white w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900">💊 Foglio Terapia</h2>
+          <p id="therapyPatientLabel" class="text-xs text-slate-500"></p>
+        </div>
+        <button id="closeTherapyModal" class="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold">✕</button>
+      </div>
+
+      <!-- Inserimento / Modifica farmaco -->
+      <form id="therapyForm" class="bg-teal-50/70 border border-teal-200 rounded-2xl p-3.5 mb-4 space-y-3">
+        <input type="hidden" id="thEditId" />
+
+        <div class="grid grid-cols-5 gap-2">
+          <div class="col-span-3">
+            <label class="block text-[11px] font-bold text-teal-900 mb-1">Farmaco e formulazione *</label>
+            <input id="thDrug" type="text" required placeholder="Es. Aldyxil 300ml" class="w-full px-3 py-2 rounded-xl border border-teal-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+          <div class="col-span-2">
+            <label class="block text-[11px] font-bold text-teal-900 mb-1">Dose</label>
+            <input id="thDose" type="text" placeholder="Es. 10 ml / 1 cpr" class="w-full px-3 py-2 rounded-xl border border-teal-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+        </div>
+
+        <!-- Via di somministrazione -->
+        <div>
+          <label class="block text-[11px] font-bold text-teal-900 mb-1.5">Via di somministrazione</label>
+          <div id="routePicker" class="grid grid-cols-6 gap-1">
+            <button type="button" data-route="OS" class="route-btn py-1.5 rounded-lg text-xs font-bold">OS</button>
+            <button type="button" data-route="EV" class="route-btn py-1.5 rounded-lg text-xs font-bold">EV</button>
+            <button type="button" data-route="SC" class="route-btn py-1.5 rounded-lg text-xs font-bold">SC</button>
+            <button type="button" data-route="IM" class="route-btn py-1.5 rounded-lg text-xs font-bold">IM</button>
+            <button type="button" data-route="INAL" class="route-btn py-1.5 rounded-lg text-xs font-bold">INAL</button>
+            <button type="button" data-route="Altro" class="route-btn py-1.5 rounded-lg text-xs font-bold">Altro</button>
+          </div>
+        </div>
+
+        <!-- Fasce orarie (selezione multipla) -->
+        <div>
+          <label class="block text-[11px] font-bold text-teal-900 mb-1.5">Orari (puoi selezionarne più di uno)</label>
+          <div id="timePicker" class="flex flex-wrap gap-1.5">
+            <button type="button" data-time="08" class="time-btn px-3 py-1.5 rounded-lg text-xs font-bold">08</button>
+            <button type="button" data-time="12" class="time-btn px-3 py-1.5 rounded-lg text-xs font-bold">12</button>
+            <button type="button" data-time="16" class="time-btn px-3 py-1.5 rounded-lg text-xs font-bold">16</button>
+            <button type="button" data-time="20" class="time-btn px-3 py-1.5 rounded-lg text-xs font-bold">20</button>
+            <button type="button" data-time="22" class="time-btn px-3 py-1.5 rounded-lg text-xs font-bold">22</button>
+            <button type="button" data-time="Al bisogno" class="time-btn px-3 py-1.5 rounded-lg text-xs font-bold">Al bisogno</button>
+          </div>
+        </div>
+
+        <div>
+          <input id="thNotes" type="text" placeholder="Note opzionali (es. in 100ml SF in 30', se PA > 160...)" class="w-full px-3 py-2 rounded-xl border border-teal-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+
+        <div class="flex gap-2">
+          <button type="button" id="thCancelEditBtn" class="hidden px-3 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-xs font-bold">Annulla</button>
+          <button type="submit" id="thSubmitBtn" class="flex-1 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold active:scale-[0.99] transition">+ Aggiungi farmaco</button>
+        </div>
+      </form>
+
+      <!-- Lista farmaci in corso -->
+      <div class="mb-2 flex items-center justify-between">
+        <span class="text-xs font-bold text-slate-700">Terapia in corso</span>
+        <span id="therapyCountLabel" class="text-[11px] text-slate-400"></span>
+      </div>
+      <div id="therapyList" class="space-y-2"></div>
+
+      <!-- Eventuale terapia precedente a testo libero (retrocompatibilità) -->
+      <div id="legacyTherapyBox" class="hidden mt-4 p-3 rounded-2xl bg-slate-50 border border-slate-200">
+        <div class="flex items-center justify-between gap-2 mb-1.5">
+          <span class="text-[11px] font-bold text-slate-600">Terapia precedente (testo libero)</span>
+          <button type="button" id="clearLegacyTherapyBtn" class="text-[11px] font-bold text-rose-600">Rimuovi</button>
+        </div>
+        <p id="legacyTherapyText" class="text-xs text-slate-700 whitespace-pre-line"></p>
+      </div>
     </div>
   </div>
 
@@ -280,8 +435,9 @@
     import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // CANALE NOTIFICHE NTFY
-    const NTFY_TOPIC = "reparto-np1-x7k9m2p4q8";
+    // CONFIGURAZIONE BOT TELEGRAM
+    const TG_BOT_TOKEN = "8788439262:AAHg-BBIqIuoR5SDc8VN3y9bLA818V6Xius";
+    const TG_CHAT_ID = "-5475419927";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAROgIJ_L5h_tPe_25oHDWg0bncxYeHPBs",
@@ -297,7 +453,12 @@
     const db = getFirestore(app);
 
     const WEEK_DAYS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const DAY_FULL = {
+      Lun: 'Lunedì', Mar: 'Martedì', Mer: 'Mercoledì', Gio: 'Giovedì',
+      Ven: 'Venerdì', Sab: 'Sabato', Dom: 'Domenica', '': 'Da programmare'
+    };
     const DAY_ORDER = { 'Lun': 1, 'Mar': 2, 'Mer': 3, 'Gio': 4, 'Ven': 5, 'Sab': 6, 'Dom': 7, '': 8 };
+    const TIME_ORDER = { '08': 1, '12': 2, '16': 3, '20': 4, '22': 5, 'Al bisogno': 6 };
     const getTodayShort = () => ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'][new Date().getDay()];
 
     let patients = [];
@@ -305,7 +466,12 @@
     let currentFilter = 'all';
     let modalRequests = [];
     let selectedReqDay = '';
+    let cardSelectedDay = {}; // { [patientId]: 'Lun' | ... | null }
     let activeDocsPatientId = null;
+    let activeTherapyPatientId = null;
+    let activeExamPatientId = null;
+    let selectedRoute = 'OS';
+    let selectedTimes = ['08'];
     let unsubPatients = null;
     let unsubDocs = null;
 
@@ -321,7 +487,7 @@
     }
 
     function escapeHtml(str = '') {
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+      return String(str).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
     }
 
     function currentUserShort() {
@@ -329,76 +495,103 @@
       return email.split('@')[0] || 'Specializzando';
     }
 
-    // INVIO NOTIFICA NTFY VIA JSON (ZERO BLOCCHI CORS / ACCENTI)
-    async function sendNtfy(title, message, priority = 3, tags = ['hospital']) {
-      if (!NTFY_TOPIC) return false;
+    function formatShortDateTime(ts) {
+      if (!ts) return '';
+      const d = new Date(ts);
+      return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' }) + ' ' +
+        d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function formatTherapyLine(t) {
+      const dosePart = t.dose ? ` — Dose: ${t.dose}` : '';
+      const meta = [t.route, (t.times && t.times.length) ? t.times.join(', ') : ''].filter(Boolean).join(' · ');
+      return `${t.drug}${dosePart}${meta ? ` [${meta}]` : ''}${t.notes ? ` (${t.notes})` : ''}`;
+    }
+
+    function hasExam(ex) {
+      if (!ex) return false;
+      return Boolean(
+        (ex.pa && ex.pa.trim()) || (ex.fc && ex.fc.trim()) || (ex.spo2 && ex.spo2.trim()) ||
+        (ex.tc && ex.tc.trim()) || (ex.fr && ex.fr.trim()) || (ex.diuresi && ex.diuresi.trim()) ||
+        (ex.neuro && ex.neuro.trim()) || (ex.torace && ex.torace.trim()) || (ex.cuore && ex.cuore.trim()) ||
+        (ex.addome && ex.addome.trim()) || (ex.altro && ex.altro.trim())
+      );
+    }
+
+    function formatExamLines(ex) {
+      if (!ex) return [];
+      const vitals = [
+        ex.pa ? `PA ${ex.pa}` : '',
+        ex.fc ? `FC ${ex.fc}` : '',
+        ex.spo2 ? `SpO2 ${ex.spo2}` : '',
+        ex.tc ? `TC ${ex.tc}°C` : '',
+        ex.fr ? `FR ${ex.fr}` : '',
+        ex.diuresi ? `Diuresi/Glic: ${ex.diuresi}` : ''
+      ].filter(Boolean);
+      const lines = [];
+      if (vitals.length) lines.push(`PV: ${vitals.join(' · ')}`);
+      if (ex.neuro) lines.push(`Neuro: ${ex.neuro}`);
+      if (ex.torace) lines.push(`Torace: ${ex.torace}`);
+      if (ex.cuore) lines.push(`Cuore: ${ex.cuore}`);
+      if (ex.addome) lines.push(`Addome: ${ex.addome}`);
+      if (ex.altro) lines.push(`Altro: ${ex.altro}`);
+      return lines;
+    }
+
+    // INVIO NOTIFICA TELEGRAM
+    async function sendTelegram(title, bodyHtml) {
+      if (!TG_BOT_TOKEN || !TG_CHAT_ID) return false;
+      const text = `<b>${escapeHtml(title)}</b>\n${bodyHtml}`;
       try {
-        const res = await fetch('https://ntfy.sh', {
+        const res = await fetch(`https://api.telegram.org/bot${TG_BOT_TOKEN}/sendMessage`, {
           method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            topic: NTFY_TOPIC,
-            title: title,
-            message: message,
-            priority: priority,
-            tags: Array.isArray(tags) ? tags : [tags]
+            chat_id: TG_CHAT_ID,
+            text: text,
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
           })
         });
         return res.ok;
       } catch (err) {
-        console.warn('Errore ntfy:', err);
+        console.warn('Errore invio Telegram:', err);
         return false;
       }
     }
 
-    // TASTO TEST NOTIFICA
-    $('testNtfyBtn').addEventListener('click', async () => {
-      showToast('Invio notifica di prova...');
-      const ok = await sendNtfy(
-        'Test Consegne Reparto',
-        `Notifiche attive! Inviata da ${currentUserShort()}`,
-        3,
-        ['bell']
+    // TASTO TEST NOTIFICA TELEGRAM
+    $('testTgBtn').addEventListener('click', async () => {
+      showToast('Invio test su Telegram...');
+      const ok = await sendTelegram(
+        '🔔 Test Consegne Reparto',
+        `Notifiche Telegram attive!\n— <i>${escapeHtml(currentUserShort())}</i>`
       );
-      showToast(ok ? 'Notifica di prova inviata!' : 'Errore invio notifica');
+      showToast(ok ? 'Messaggio inviato su Telegram!' : 'Errore invio Telegram');
     });
 
-    // INVIA NOTIFICHE SPECIFICHE PER OGNI SEZIONE MODIFICATA
+    // INVIA NOTIFICHE SPECIFICHE PER OGNI SEZIONE MODIFICATA (SCHEDA PAZIENTE)
     async function sendSectionNotifications(oldP, newP) {
       const pTitle = `${newP.name || 'Anonimo'} (St.${newP.room} L.${newP.bed})`;
-      const user = currentUserShort();
-      const prio = newP.status === 'critico' ? 4 : 3;
+      const user = escapeHtml(currentUserShort());
 
-      // 1. Modifica Terapia
-      if ((oldP.therapy || '').trim() !== (newP.therapy || '').trim()) {
-        await sendNtfy(
-          `Modifica Terapia: ${pTitle}`,
-          `${newP.therapy ? newP.therapy : '(Terapia rimossa)'}\n— ${user}`,
-          prio,
-          ['pill']
-        );
-      }
-
-      // 2. Modifica Diagnosi
+      // 1. Modifica Diagnosi
       if ((oldP.diagnosis || '').trim() !== (newP.diagnosis || '').trim()) {
-        await sendNtfy(
-          `Modifica Diagnosi: ${pTitle}`,
-          `${newP.diagnosis}\n— ${user}`,
-          prio,
-          ['stethoscope']
+        await sendTelegram(
+          `🩺 Modifica Diagnosi: ${pTitle}`,
+          `${escapeHtml(newP.diagnosis)}\n— <i>${user}</i>`
         );
       }
 
-      // 3. Modifica Note Guardia
+      // 2. Modifica Note Guardia
       if ((oldP.guardia || '').trim() !== (newP.guardia || '').trim()) {
-        await sendNtfy(
-          `Modifica Note Guardia: ${pTitle}`,
-          `${newP.guardia ? newP.guardia : '(Note guardia rimosse)'}\n— ${user}`,
-          4,
-          ['crescent_moon']
+        await sendTelegram(
+          `🌙 Modifica Note Guardia: ${pTitle}`,
+          `${newP.guardia ? escapeHtml(newP.guardia) : '<i>(Note guardia rimosse)</i>'}\n— <i>${user}</i>`
         );
       }
 
-      // 4. Modifica Richieste
+      // 3. Modifica Calendario / Richieste
       const oldReqs = oldP.requests || [];
       const newReqs = newP.requests || [];
       const oldMap = new Map(oldReqs.map(r => [r.text, r]));
@@ -407,48 +600,44 @@
 
       newReqs.forEach(r => {
         if (!oldMap.has(r.text)) {
-          reqChanges.push(`➕ Aggiunta: ${r.day ? '[' + r.day + '] ' : ''}${r.text}`);
+          reqChanges.push(`➕ Aggiunta: ${r.day ? '[' + escapeHtml(r.day) + '] ' : ''}${escapeHtml(r.text)}`);
         } else {
           const prev = oldMap.get(r.text);
           if ((prev.day || '') !== (r.day || '')) {
-            reqChanges.push(`📅 Giorno "${r.text}": ${prev.day || '—'} → ${r.day || '—'}`);
+            reqChanges.push(`📅 Giorno "${escapeHtml(r.text)}": ${escapeHtml(prev.day || '—')} → ${escapeHtml(r.day || '—')}`);
           }
           if (Boolean(prev.done) !== Boolean(r.done)) {
-            reqChanges.push(`${r.done ? '✅ Completata' : '🔄 Riaperta'}: ${r.text}`);
+            reqChanges.push(`${r.done ? '✅ Completata' : '🔄 Riaperta'}: ${escapeHtml(r.text)}`);
           }
         }
       });
       oldReqs.forEach(r => {
         if (!newMap.has(r.text)) {
-          reqChanges.push(`🗑️ Rimossa: ${r.text}`);
+          reqChanges.push(`🗑️ Rimossa: ${escapeHtml(r.text)}`);
         }
       });
       if (reqChanges.length > 0) {
-        await sendNtfy(
-          `Modifica Richieste: ${pTitle}`,
-          `${reqChanges.join('\n')}\n— ${user}`,
-          prio,
-          ['calendar']
+        await sendTelegram(
+          `📅 Modifica Calendario: ${pTitle}`,
+          `${reqChanges.join('\n')}\n— <i>${user}</i>`
         );
       }
 
-      // 5. Altre modifiche (Stato, Letto, Anagrafica)
+      // 4. Altre modifiche (Stato, Letto, Anagrafica)
       const otherChanges = [];
       if (Number(oldP.room) !== Number(newP.room) || Number(oldP.bed) !== Number(newP.bed)) {
         otherChanges.push(`🛏️ Spostato: St.${oldP.room} L.${oldP.bed} → St.${newP.room} L.${newP.bed}`);
       }
       if ((oldP.status || 'stabile') !== (newP.status || 'stabile')) {
-        otherChanges.push(`🚦 Stato: ${statusLabel[oldP.status] || 'Stabile'} → ${statusLabel[newP.status] || 'Stabile'}`);
+        otherChanges.push(`🚦 Stato: ${escapeHtml(statusLabel[oldP.status] || 'Stabile')} → ${escapeHtml(statusLabel[newP.status] || 'Stabile')}`);
       }
       if ((oldP.name || '') !== (newP.name || '') || (oldP.dob || '') !== (newP.dob || '') || Number(oldP.age || 0) !== Number(newP.age || 0) || (oldP.sex || '') !== (newP.sex || '')) {
         otherChanges.push(`👤 Anagrafica aggiornata`);
       }
       if (otherChanges.length > 0) {
-        await sendNtfy(
-          `Aggiornamento Scheda: ${pTitle}`,
-          `${otherChanges.join('\n')}\n— ${user}`,
-          prio,
-          ['hospital']
+        await sendTelegram(
+          `🏥 Aggiornamento Scheda: ${pTitle}`,
+          `${otherChanges.join('\n')}\n— <i>${user}</i>`
         );
       }
     }
@@ -488,6 +677,7 @@
       unsubPatients = onSnapshot(collection(db, 'patients'), (snap) => {
         patients = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         renderPatients();
+        if (activeTherapyPatientId) renderTherapyModal();
       });
       unsubDocs = onSnapshot(collection(db, 'documents'), (snap) => {
         documents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -520,7 +710,7 @@
       btn.addEventListener('click', () => { $('pBed').value = btn.dataset.bed; });
     });
 
-    // SELETTORE GIORNO SETTIMANA (LUN - DOM)
+    // SELETTORE GIORNO SETTIMANA (LUN - DOM) NELLA MODALE PAZIENTE
     function updateWeekPickerUI() {
       const today = getTodayShort();
       document.querySelectorAll('.day-pick-btn').forEach(btn => {
@@ -572,6 +762,169 @@
     };
     const statusLabel = { stabile: 'Stabile', rivalutare: 'Da rivalutare', critico: 'Critico', dimissione: 'In dimissione' };
 
+    function renderExamCardBlock(p) {
+      const ex = p.exam;
+      if (!hasExam(ex)) return '';
+      const vitals = [
+        ex.pa ? `PA ${ex.pa}` : '',
+        ex.fc ? `FC ${ex.fc}` : '',
+        ex.spo2 ? `SpO2 ${ex.spo2}` : '',
+        ex.tc ? `TC ${ex.tc}°C` : '',
+        ex.fr ? `FR ${ex.fr}` : '',
+        ex.diuresi ? `${ex.diuresi}` : ''
+      ].filter(Boolean);
+      const textItems = [
+        ex.neuro ? ['Neuro', ex.neuro] : null,
+        ex.torace ? ['Torace', ex.torace] : null,
+        ex.cuore ? ['Cuore', ex.cuore] : null,
+        ex.addome ? ['Addome', ex.addome] : null,
+        ex.altro ? ['Altro', ex.altro] : null
+      ].filter(Boolean);
+      const metaTime = ex.updatedAt ? `${formatShortDateTime(ex.updatedAt)}${ex.updatedBy ? ' · ' + ex.updatedBy : ''}` : '';
+
+      return `
+        <div data-exam="${p.id}" class="cursor-pointer bg-emerald-50/70 border border-emerald-200 rounded-xl px-2.5 py-2 mb-2 active:bg-emerald-100/70 transition">
+          <div class="flex items-center justify-between gap-2 mb-1">
+            <span class="text-[11px] font-bold text-emerald-900">🩺 Esame Obiettivo</span>
+            ${metaTime ? `<span class="text-[10px] text-emerald-700/80">${escapeHtml(metaTime)}</span>` : ''}
+          </div>
+          ${vitals.length ? `
+            <div class="flex flex-wrap gap-1 mb-1">
+              ${vitals.map(v => `<span class="px-1.5 py-0.5 rounded-md bg-white border border-emerald-200 text-[10px] font-bold text-emerald-950">${escapeHtml(v)}</span>`).join('')}
+            </div>
+          ` : ''}
+          ${textItems.length ? `
+            <div class="space-y-0.5 text-[11px] text-emerald-950 leading-snug">
+              ${textItems.map(([k, v]) => `<div><span class="font-bold text-emerald-800">${k}:</span> ${escapeHtml(v)}</div>`).join('')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderCalendarBlock(p, reqs) {
+      const today = getTodayShort();
+      const selDay = cardSelectedDay[p.id] || null;
+
+      // Calcola contatori per ciascuno dei 7 giorni
+      const dayStats = {};
+      WEEK_DAYS.forEach(d => {
+        const items = reqs.filter(r => r.day === d);
+        dayStats[d] = {
+          total: items.length,
+          open: items.filter(r => !r.done).length
+        };
+      });
+
+      const weekBarHtml = `
+        <div class="grid grid-cols-7 gap-1 mb-2">
+          ${WEEK_DAYS.map(d => {
+            const st = dayStats[d];
+            const isSel = selDay === d;
+            const isToday = d === today;
+            let cls = 'bg-white border border-slate-200 text-slate-400';
+            if (isSel) {
+              cls = 'bg-slate-900 text-white border border-slate-900 shadow-sm';
+            } else if (isToday && st.open > 0) {
+              cls = 'bg-sky-600 text-white border border-sky-600 shadow-sm';
+            } else if (isToday) {
+              cls = 'bg-sky-50 text-sky-800 border-2 border-sky-400';
+            } else if (st.open > 0) {
+              cls = 'bg-indigo-50 text-indigo-800 border border-indigo-200';
+            } else if (st.total > 0) {
+              cls = 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+            }
+
+            const indicator = st.open > 0
+              ? `<span class="text-[9px] font-extrabold leading-none mt-0.5 ${isSel || isToday ? 'text-white/95' : 'text-indigo-700'}">${st.open}</span>`
+              : (st.total > 0
+                  ? `<span class="text-[9px] font-bold leading-none mt-0.5 ${isSel ? 'text-emerald-300' : 'text-emerald-600'}">✓</span>`
+                  : `<span class="text-[9px] leading-none mt-0.5 opacity-40">·</span>`);
+
+            return `
+              <button type="button" data-cal-p="${p.id}" data-cal-day="${d}" class="flex flex-col items-center justify-center py-1 rounded-lg transition active:scale-95 ${cls}">
+                <span class="text-[10px] font-bold leading-tight">${d}</span>
+                ${indicator}
+              </button>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      const renderReqRow = (r, showDayBtn = true) => `
+        <div class="flex items-center justify-between gap-2 py-0.5">
+          <label class="flex items-center gap-2 text-xs flex-1 min-w-0 ${r.done ? 'line-through text-slate-400' : 'text-slate-800'}">
+            <input type="checkbox" data-toggle-p="${p.id}" data-toggle-i="${r.origIdx}" ${r.done ? 'checked' : ''} class="w-4 h-4 rounded accent-sky-600 shrink-0" />
+            <span class="truncate">${escapeHtml(r.text)}</span>
+          </label>
+          ${showDayBtn ? `
+            <button type="button" data-cycle-p="${p.id}" data-cycle-i="${r.origIdx}" title="Tocca per spostare di giorno" class="px-1.5 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${dayBadgeClass(r.day || '')}">
+              ${r.day || '+ Giorno'}
+            </button>
+          ` : ''}
+        </div>
+      `;
+
+      let bodyHtml = '';
+      if (selDay) {
+        const dayItems = reqs.filter(r => r.day === selDay);
+        bodyHtml = `
+          <div class="bg-white rounded-xl border border-slate-200 p-2.5 space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-[11px] font-bold text-slate-800">${DAY_FULL[selDay]}${selDay === today ? ' (Oggi)' : ''}</span>
+              <button type="button" data-cal-p="${p.id}" data-cal-day="${selDay}" class="text-[10px] font-bold text-sky-700">Mostra settimana</button>
+            </div>
+            ${dayItems.length
+              ? `<div class="space-y-1">${dayItems.map(r => renderReqRow(r, true)).join('')}</div>`
+              : `<p class="text-[11px] text-slate-400 italic">Nessuna attività programmata per ${DAY_FULL[selDay].toLowerCase()}.</p>`
+            }
+            <form data-quick-req-p="${p.id}" data-quick-req-day="${selDay}" class="flex gap-1.5 pt-1 border-t border-slate-100">
+              <input type="text" required placeholder="Aggiungi per ${DAY_FULL[selDay]}..." class="flex-1 min-w-0 px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500" />
+              <button type="submit" class="px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-bold shrink-0">+</button>
+            </form>
+          </div>
+        `;
+      } else {
+        const groups = [...WEEK_DAYS, ''].map(d => ({
+          day: d,
+          items: reqs.filter(r => (r.day || '') === d)
+        })).filter(g => g.items.length > 0);
+
+        if (groups.length === 0) {
+          bodyHtml = `<p class="text-[11px] text-slate-400 text-center py-1">Tocca un giorno sopra per aggiungere esami o attività</p>`;
+        } else {
+          bodyHtml = `
+            <div class="space-y-1.5">
+              ${groups.map(g => `
+                <div class="bg-white rounded-xl border ${g.day === today ? 'border-sky-300 bg-sky-50/30' : 'border-slate-200/80'} px-2.5 py-1.5">
+                  <div class="flex items-center justify-between mb-0.5">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wide ${g.day === today ? 'text-sky-700' : 'text-slate-500'}">
+                      ${DAY_FULL[g.day]}${g.day === today ? ' · Oggi' : ''}
+                    </span>
+                  </div>
+                  <div class="space-y-0.5">
+                    ${g.items.map(r => renderReqRow(r, true)).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+      }
+
+      const openCount = reqs.filter(r => !r.done).length;
+      return `
+        <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-2.5">
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-[11px] font-bold text-slate-700">📅 Calendario Settimanale</span>
+            <span class="text-[10px] font-semibold text-slate-400">${openCount} ${openCount === 1 ? 'aperta' : 'aperte'}</span>
+          </div>
+          ${weekBarHtml}
+          ${bodyHtml}
+        </div>
+      `;
+    }
+
     function renderPatients() {
       const q = $('searchInput').value.trim().toLowerCase();
       const today = getTodayShort();
@@ -589,8 +942,10 @@
           if (currentFilter === 'guardia') return (p.guardia && p.guardia.trim()) || p.status === 'critico';
           if (currentFilter !== 'all' && p.status !== currentFilter) return false;
           if (!q) return true;
-          const reqHay = (p.requests || []).map(r => `${r.text} ${r.day || ''}`).join(' ');
-          const hay = `${p.room} ${p.bed} ${p.name || ''} ${p.diagnosis || ''} ${p.therapy || ''} ${p.guardia || ''} ${reqHay}`.toLowerCase();
+          const reqHay = (p.requests || []).map(r => `${r.text} ${r.day || ''} ${DAY_FULL[r.day || ''] || ''}`).join(' ');
+          const thHay = (p.therapies || []).map(t => `${t.drug} ${t.dose || ''} ${t.route || ''} ${(t.times || []).join(' ')} ${t.notes || ''}`).join(' ');
+          const exHay = formatExamLines(p.exam).join(' ');
+          const hay = `${p.room} ${p.bed} ${p.name || ''} ${p.diagnosis || ''} ${p.therapy || ''} ${thHay} ${exHay} ${p.guardia || ''} ${reqHay}`.toLowerCase();
           return hay.includes(q);
         })
         .sort((a, b) => (Number(a.room) - Number(b.room)) || (Number(a.bed) - Number(b.bed)));
@@ -601,73 +956,94 @@
 
       filtered.forEach(p => {
         const docsCount = documents.filter(d => d.patientId === p.id).length;
+        const therapiesCount = (p.therapies || []).length + ((p.therapy && p.therapy.trim() && !(p.therapies && p.therapies.length)) ? 1 : 0);
+        const examCompiled = hasExam(p.exam);
         const reqs = (p.requests || []).map((r, origIdx) => ({ ...r, origIdx }))
           .sort((a, b) => (DAY_ORDER[a.day || ''] || 8) - (DAY_ORDER[b.day || ''] || 8));
-        const openCount = reqs.filter(r => !r.done).length;
         const days = calcDays(p.admitDate);
         const card = document.createElement('div');
         card.className = `bg-white rounded-2xl p-3.5 shadow-sm border ${p.status === 'critico' ? 'border-rose-300' : 'border-slate-200'}`;
 
         card.innerHTML = `
           <div class="flex items-start justify-between gap-2 mb-2">
-            <div class="flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-1.5 flex-wrap">
               <span class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-bold">St. ${p.room} · L.${p.bed}</span>
               <span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${statusBadge[p.status] || statusBadge.stabile}">${statusLabel[p.status] || 'Stabile'}</span>
               ${days !== null ? `<span class="text-[11px] text-slate-400 font-medium">${days}g</span>` : ''}
             </div>
-            <div class="flex gap-1.5">
-              <button data-docs="${p.id}" class="px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-bold">📁 ${docsCount}</button>
-              <button data-edit="${p.id}" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">Modifica</button>
-            </div>
+            <button data-edit="${p.id}" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold shrink-0 active:scale-95 transition">Modifica</button>
           </div>
 
-          <div class="mb-1.5">
+          <div class="mb-1">
             <span class="font-bold text-sm text-slate-900">${escapeHtml(p.name || 'Paziente anonimo')}</span>
             <span class="text-xs text-slate-500 ml-1">${p.sex || ''}${p.age ? ', ' + p.age + 'a' : ''}</span>
           </div>
 
-          <p class="text-xs text-slate-700 leading-relaxed mb-2">${escapeHtml(p.diagnosis || '')}</p>
+          <p class="text-xs text-slate-700 leading-relaxed mb-2.5">${escapeHtml(p.diagnosis || '')}</p>
 
-          ${p.therapy ? `<div class="bg-teal-50 border border-teal-200 rounded-xl px-2.5 py-1.5 mb-2 text-xs text-teal-950 whitespace-pre-line"><span class="font-bold text-teal-800">💊 Terapia:</span>\n${escapeHtml(p.therapy)}</div>` : ''}
+          <!-- Pulsanti sezioni dedicate -->
+          <div class="grid grid-cols-3 gap-1.5 mb-2.5">
+            <button data-therapy="${p.id}" class="py-1.5 px-2 rounded-xl bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-bold active:scale-95 transition">💊 Terapia (${therapiesCount})</button>
+            <button data-exam="${p.id}" class="py-1.5 px-2 rounded-xl ${examCompiled ? 'bg-emerald-600 text-white border border-emerald-600' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'} text-[11px] font-bold active:scale-95 transition">🩺 EO${examCompiled ? ' ✓' : ''}</button>
+            <button data-docs="${p.id}" class="py-1.5 px-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 text-[11px] font-bold active:scale-95 transition">📁 Docs (${docsCount})</button>
+          </div>
 
           ${p.guardia ? `<div class="bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 mb-2 text-xs text-amber-900"><span class="font-bold">🌙 Guardia:</span> ${escapeHtml(p.guardia)}</div>` : ''}
 
-          ${reqs.length ? `
-            <div class="pt-2 border-t border-slate-100 space-y-1.5">
-              <div class="text-[11px] font-semibold text-slate-400">${openCount} ${openCount === 1 ? 'richiesta aperta' : 'richieste aperte'}</div>
-              ${reqs.map((r) => `
-                <div class="flex items-center justify-between gap-2">
-                  <label class="flex items-center gap-2 text-xs flex-1 min-w-0 ${r.done ? 'line-through text-slate-400' : 'text-slate-800'}">
-                    <input type="checkbox" data-toggle-p="${p.id}" data-toggle-i="${r.origIdx}" ${r.done ? 'checked' : ''} class="w-4 h-4 rounded accent-sky-600 shrink-0" />
-                    <span class="truncate">${escapeHtml(r.text)}</span>
-                  </label>
-                  <button type="button" data-cycle-p="${p.id}" data-cycle-i="${r.origIdx}" title="Tocca per cambiare giorno" class="px-2 py-0.5 rounded-md text-[10px] font-bold shrink-0 ${dayBadgeClass(r.day || '')}">
-                    ${r.day || '+ Giorno'}
-                  </button>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
+          ${renderExamCardBlock(p)}
+
+          ${renderCalendarBlock(p, reqs)}
         `;
         list.appendChild(card);
       });
 
       list.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openPatientModal(b.dataset.edit)));
       list.querySelectorAll('[data-docs]').forEach(b => b.addEventListener('click', () => openDocsModal(b.dataset.docs)));
+      list.querySelectorAll('[data-therapy]').forEach(b => b.addEventListener('click', () => openTherapyModal(b.dataset.therapy)));
+      list.querySelectorAll('[data-exam]').forEach(b => b.addEventListener('click', () => openExamModal(b.dataset.exam)));
+
+      // Selezione giorno nel calendario sulla card
+      list.querySelectorAll('[data-cal-day]').forEach(btn => btn.addEventListener('click', () => {
+        const pid = btn.dataset.calP;
+        const d = btn.dataset.calDay;
+        cardSelectedDay[pid] = (cardSelectedDay[pid] === d) ? null : d;
+        renderPatients();
+      }));
+
+      // Aggiunta rapida attività direttamente dal giorno selezionato nel calendario
+      list.querySelectorAll('[data-quick-req-p]').forEach(form => form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pid = form.dataset.quickReqP;
+        const day = form.dataset.quickReqDay;
+        const input = form.querySelector('input');
+        const text = input.value.trim();
+        if (!text) return;
+        const p = patients.find(x => x.id === pid);
+        if (!p) return;
+        const updated = [...(p.requests || []), { text, day, done: false }];
+        input.value = '';
+        await updateDoc(doc(db, 'patients', p.id), { requests: updated, updatedAt: Date.now() });
+        showToast(`Aggiunta per ${DAY_FULL[day]}`);
+        await sendTelegram(
+          `📅 Calendario: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+          `➕ [${escapeHtml(DAY_FULL[day])}] ${escapeHtml(text)}\n— <i>${escapeHtml(currentUserShort())}</i>`
+        );
+      }));
+
       list.querySelectorAll('[data-toggle-p]').forEach(cb => cb.addEventListener('change', async () => {
         const p = patients.find(x => x.id === cb.dataset.toggleP);
         if (!p) return;
         const idx = Number(cb.dataset.toggleI);
         const reqText = p.requests[idx]?.text || '';
+        const reqDay = p.requests[idx]?.day || '';
         const updated = (p.requests || []).map((r, i) => i === idx ? { ...r, done: cb.checked } : r);
         await updateDoc(doc(db, 'patients', p.id), { requests: updated });
-        sendNtfy(
-          `Richiesta: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
-          `${cb.checked ? '✅ Completata' : '🔄 Riaperta'}: ${reqText}\n— ${currentUserShort()}`,
-          3,
-          ['calendar']
+        await sendTelegram(
+          `📅 Calendario: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+          `${cb.checked ? '✅ Completata' : '🔄 Riaperta'}${reqDay ? ' [' + escapeHtml(reqDay) + ']' : ''}: ${escapeHtml(reqText)}\n— <i>${escapeHtml(currentUserShort())}</i>`
         );
       }));
+
       list.querySelectorAll('[data-cycle-p]').forEach(btn => btn.addEventListener('click', async () => {
         const p = patients.find(x => x.id === btn.dataset.cycleP);
         if (!p) return;
@@ -678,16 +1054,298 @@
         const nextDay = order[(order.indexOf(curDay) + 1) % order.length];
         const updated = (p.requests || []).map((r, i) => i === idx ? { ...r, day: nextDay } : r);
         await updateDoc(doc(db, 'patients', p.id), { requests: updated });
-        sendNtfy(
-          `Calendario Richieste: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
-          `📅 "${reqText}": ${curDay || '—'} → ${nextDay || '—'}\n— ${currentUserShort()}`,
-          3,
-          ['calendar']
+        await sendTelegram(
+          `📅 Calendario: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+          `"${escapeHtml(reqText)}": ${escapeHtml(curDay || '—')} → ${escapeHtml(nextDay || '—')}\n— <i>${escapeHtml(currentUserShort())}</i>`
         );
       }));
     }
 
+    // ==========================================
+    // MODALE ESAME OBIETTIVO
+    // ==========================================
+    function openExamModal(patientId) {
+      activeExamPatientId = patientId;
+      const p = patients.find(x => x.id === patientId);
+      if (!p) return;
+      const ex = p.exam || {};
+      $('examPatientLabel').textContent = `Stanza ${p.room} · Letto ${p.bed} — ${p.name || 'Anonimo'}`;
+      $('examLastUpdated').textContent = ex.updatedAt
+        ? `Ultimo agg.: ${formatShortDateTime(ex.updatedAt)}${ex.updatedBy ? ' (' + ex.updatedBy + ')' : ''}`
+        : 'Non ancora compilato';
+
+      $('eoPa').value = ex.pa || '';
+      $('eoFc').value = ex.fc || '';
+      $('eoSpo2').value = ex.spo2 || '';
+      $('eoTc').value = ex.tc || '';
+      $('eoFr').value = ex.fr || '';
+      $('eoDiuresi').value = ex.diuresi || '';
+      $('eoNeuro').value = ex.neuro || '';
+      $('eoTorace').value = ex.torace || '';
+      $('eoCuore').value = ex.cuore || '';
+      $('eoAddome').value = ex.addome || '';
+      $('eoAltro').value = ex.altro || '';
+
+      $('examModal').classList.remove('hidden');
+    }
+
+    $('closeExamModal').addEventListener('click', () => {
+      activeExamPatientId = null;
+      $('examModal').classList.add('hidden');
+    });
+
+    $('fillNormalExamBtn').addEventListener('click', () => {
+      if (!$('eoNeuro').value.trim()) $('eoNeuro').value = 'Vigile, orientato, collaborante, non deficit neurologici focali.';
+      if (!$('eoTorace').value.trim()) $('eoTorace').value = "MV normotrasmesso su tutto l'ambito, non rumori patologici aggiunti.";
+      if (!$('eoCuore').value.trim()) $('eoCuore').value = 'Toni cardiaci validi, ritmici, pause libere.';
+      if (!$('eoAddome').value.trim()) $('eoAddome').value = 'Trattabile, non dolente né dolorabile, peristalsi presente.';
+      if (!$('eoAltro').value.trim()) $('eoAltro').value = 'Non edemi declivi, polsi periferici presenti.';
+      showToast('Campi vuoti compilati nella norma');
+    });
+
+    $('clearExamBtn').addEventListener('click', () => {
+      if (!confirm('Svuotare tutti i campi dell\'Esame Obiettivo?')) return;
+      ['eoPa', 'eoFc', 'eoSpo2', 'eoTc', 'eoFr', 'eoDiuresi', 'eoNeuro', 'eoTorace', 'eoCuore', 'eoAddome', 'eoAltro']
+        .forEach(id => { $(id).value = ''; });
+    });
+
+    $('examForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!activeExamPatientId) return;
+      const p = patients.find(x => x.id === activeExamPatientId);
+      if (!p) return;
+
+      const user = currentUserShort();
+      const exam = {
+        pa: $('eoPa').value.trim(),
+        fc: $('eoFc').value.trim(),
+        spo2: $('eoSpo2').value.trim(),
+        tc: $('eoTc').value.trim(),
+        fr: $('eoFr').value.trim(),
+        diuresi: $('eoDiuresi').value.trim(),
+        neuro: $('eoNeuro').value.trim(),
+        torace: $('eoTorace').value.trim(),
+        cuore: $('eoCuore').value.trim(),
+        addome: $('eoAddome').value.trim(),
+        altro: $('eoAltro').value.trim(),
+        updatedAt: Date.now(),
+        updatedBy: user
+      };
+
+      await updateDoc(doc(db, 'patients', p.id), { exam, updatedAt: Date.now() });
+      $('examModal').classList.add('hidden');
+      activeExamPatientId = null;
+      showToast('Esame Obiettivo salvato');
+
+      const lines = formatExamLines(exam);
+      const pTitle = `${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`;
+      await sendTelegram(
+        `🩺 Esame Obiettivo: ${pTitle}`,
+        `${lines.length ? lines.map(escapeHtml).join('\n') : '<i>(Esame Obiettivo svuotato)</i>'}\n— <i>${escapeHtml(user)}</i>`
+      );
+    });
+
+    // ==========================================
+    // MODALE FOGLIO TERAPIA (DEDICATA)
+    // ==========================================
+    function updateRoutePickerUI() {
+      document.querySelectorAll('.route-btn').forEach(btn => {
+        const active = btn.dataset.route === selectedRoute;
+        btn.className = 'route-btn py-1.5 rounded-lg text-xs font-bold transition ' +
+          (active ? 'bg-teal-700 text-white shadow-sm' : 'bg-white border border-teal-200 text-teal-900');
+      });
+    }
+
+    function updateTimePickerUI() {
+      document.querySelectorAll('.time-btn').forEach(btn => {
+        const active = selectedTimes.includes(btn.dataset.time);
+        btn.className = 'time-btn px-3 py-1.5 rounded-lg text-xs font-bold transition ' +
+          (active ? 'bg-sky-600 text-white shadow-sm' : 'bg-white border border-teal-200 text-slate-700');
+      });
+    }
+
+    document.querySelectorAll('.route-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedRoute = btn.dataset.route;
+        updateRoutePickerUI();
+      });
+    });
+
+    document.querySelectorAll('.time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = btn.dataset.time;
+        if (selectedTimes.includes(t)) {
+          selectedTimes = selectedTimes.filter(x => x !== t);
+        } else {
+          selectedTimes.push(t);
+          selectedTimes.sort((a, b) => (TIME_ORDER[a] || 99) - (TIME_ORDER[b] || 99));
+        }
+        updateTimePickerUI();
+      });
+    });
+
+    function resetTherapyForm() {
+      $('thEditId').value = '';
+      $('thDrug').value = '';
+      $('thDose').value = '';
+      $('thNotes').value = '';
+      selectedRoute = 'OS';
+      selectedTimes = ['08'];
+      $('thSubmitBtn').textContent = '+ Aggiungi farmaco';
+      $('thCancelEditBtn').classList.add('hidden');
+      updateRoutePickerUI();
+      updateTimePickerUI();
+    }
+
+    function openTherapyModal(patientId) {
+      activeTherapyPatientId = patientId;
+      resetTherapyForm();
+      renderTherapyModal();
+      $('therapyModal').classList.remove('hidden');
+    }
+
+    $('closeTherapyModal').addEventListener('click', () => {
+      activeTherapyPatientId = null;
+      $('therapyModal').classList.add('hidden');
+    });
+
+    $('thCancelEditBtn').addEventListener('click', resetTherapyForm);
+
+    function renderTherapyModal() {
+      const p = patients.find(x => x.id === activeTherapyPatientId);
+      if (!p) return;
+
+      $('therapyPatientLabel').textContent = `Stanza ${p.room} · Letto ${p.bed} — ${p.name || 'Anonimo'}`;
+      const list = p.therapies || [];
+      $('therapyCountLabel').textContent = `${list.length} ${list.length === 1 ? 'farmaco' : 'farmaci'}`;
+
+      const c = $('therapyList');
+      if (!list.length) {
+        c.innerHTML = '<p class="text-center text-xs text-slate-400 py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">Nessun farmaco inserito.</p>';
+      } else {
+        c.innerHTML = list.map(t => `
+          <div class="p-3 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="text-sm font-bold text-slate-900">${escapeHtml(t.drug)}</span>
+                  ${t.dose ? `<span class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800 text-[11px] font-bold">Dose: ${escapeHtml(t.dose)}</span>` : ''}
+                  ${t.route ? `<span class="px-2 py-0.5 rounded-md bg-teal-700 text-white text-[10px] font-bold">${escapeHtml(t.route)}</span>` : ''}
+                </div>
+                ${(t.times && t.times.length) ? `
+                  <div class="flex flex-wrap items-center gap-1 mt-1.5">
+                    ${t.times.map(tm => `
+                      <span class="px-2 py-0.5 rounded-md text-[10px] font-bold ${tm === 'Al bisogno' ? 'bg-amber-100 text-amber-800' : 'bg-sky-100 text-sky-800'}">${escapeHtml(tm)}</span>
+                    `).join('')}
+                  </div>
+                ` : ''}
+                ${t.notes ? `<p class="text-[11px] text-slate-500 mt-1.5 leading-snug">${escapeHtml(t.notes)}</p>` : ''}
+              </div>
+              <div class="flex gap-1 shrink-0">
+                <button type="button" data-edit-th="${t.id}" class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs font-bold">Modifica</button>
+                <button type="button" data-del-th="${t.id}" class="px-2 py-1 rounded-lg bg-rose-50 text-rose-600 text-xs font-bold">✕</button>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        c.querySelectorAll('[data-edit-th]').forEach(b => b.addEventListener('click', () => {
+          const item = list.find(x => x.id === b.dataset.editTh);
+          if (!item) return;
+          $('thEditId').value = item.id;
+          $('thDrug').value = item.drug || '';
+          $('thDose').value = item.dose || '';
+          $('thNotes').value = item.notes || '';
+          selectedRoute = item.route || 'OS';
+          selectedTimes = Array.isArray(item.times) ? [...item.times] : [];
+          $('thSubmitBtn').textContent = 'Salva modifica';
+          $('thCancelEditBtn').classList.remove('hidden');
+          updateRoutePickerUI();
+          updateTimePickerUI();
+          $('thDrug').focus();
+        }));
+
+        c.querySelectorAll('[data-del-th]').forEach(b => b.addEventListener('click', async () => {
+          const item = list.find(x => x.id === b.dataset.delTh);
+          if (!item || !confirm(`Rimuovere "${item.drug}" dalla terapia?`)) return;
+          const updated = list.filter(x => x.id !== item.id);
+          await updateDoc(doc(db, 'patients', p.id), { therapies: updated, updatedAt: Date.now() });
+          if ($('thEditId').value === item.id) resetTherapyForm();
+          showToast('Farmaco rimosso');
+          await sendTelegram(
+            `💊 Terapia Rimossa: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+            `🗑️ ${escapeHtml(formatTherapyLine(item))}\n— <i>${escapeHtml(currentUserShort())}</i>`
+          );
+        }));
+      }
+
+      // Retrocompatibilità eventuale vecchia terapia a testo libero
+      if (p.therapy && p.therapy.trim()) {
+        $('legacyTherapyBox').classList.remove('hidden');
+        $('legacyTherapyText').textContent = p.therapy;
+      } else {
+        $('legacyTherapyBox').classList.add('hidden');
+      }
+    }
+
+    $('therapyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!activeTherapyPatientId) return;
+      const p = patients.find(x => x.id === activeTherapyPatientId);
+      if (!p) return;
+
+      const drug = $('thDrug').value.trim();
+      if (!drug) return;
+
+      const editId = $('thEditId').value;
+      const newItem = {
+        id: editId || ('th_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)),
+        drug,
+        dose: $('thDose').value.trim(),
+        route: selectedRoute,
+        times: [...selectedTimes],
+        notes: $('thNotes').value.trim()
+      };
+
+      const currentList = p.therapies || [];
+      let updatedList;
+      let oldItem = null;
+
+      if (editId) {
+        oldItem = currentList.find(x => x.id === editId);
+        updatedList = currentList.map(x => x.id === editId ? newItem : x);
+      } else {
+        updatedList = [...currentList, newItem];
+      }
+
+      await updateDoc(doc(db, 'patients', p.id), { therapies: updatedList, updatedAt: Date.now() });
+      resetTherapyForm();
+      showToast(editId ? 'Farmaco aggiornato' : 'Farmaco aggiunto');
+
+      const pTitle = `${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`;
+      const user = escapeHtml(currentUserShort());
+      if (editId && oldItem) {
+        await sendTelegram(
+          `💊 Terapia Modificata: ${pTitle}`,
+          `✏️ ${escapeHtml(formatTherapyLine(oldItem))}\n➡️ ${escapeHtml(formatTherapyLine(newItem))}\n— <i>${user}</i>`
+        );
+      } else {
+        await sendTelegram(
+          `💊 Terapia Aggiunta: ${pTitle}`,
+          `➕ ${escapeHtml(formatTherapyLine(newItem))}\n— <i>${user}</i>`
+        );
+      }
+    });
+
+    $('clearLegacyTherapyBtn').addEventListener('click', async () => {
+      if (!activeTherapyPatientId || !confirm('Eliminare il vecchio testo libero della terapia?')) return;
+      await updateDoc(doc(db, 'patients', activeTherapyPatientId), { therapy: '', updatedAt: Date.now() });
+      showToast('Vecchia nota terapia rimossa');
+    });
+
+    // ==========================================
     // MODALE PAZIENTE
+    // ==========================================
     function openPatientModal(id = null) {
       $('patientForm').reset();
       $('pId').value = id || '';
@@ -706,7 +1364,6 @@
         $('pStatus').value = p.status || 'stabile';
         $('pAdmit').value = p.admitDate || '';
         $('pDiagnosis').value = p.diagnosis || '';
-        $('pTherapy').value = p.therapy || '';
         $('pGuardia').value = p.guardia || '';
         modalRequests = JSON.parse(JSON.stringify(p.requests || []));
         $('dischargeBtn').classList.remove('hidden');
@@ -767,14 +1424,12 @@
         status: $('pStatus').value,
         admitDate: $('pAdmit').value,
         diagnosis: $('pDiagnosis').value.trim(),
-        therapy: $('pTherapy').value.trim(),
         guardia: $('pGuardia').value.trim(),
         requests: modalRequests,
         updatedAt: Date.now()
       };
       const id = $('pId').value;
       const pTitle = `${data.name || 'Anonimo'} (St.${data.room} L.${data.bed})`;
-      const prio = data.status === 'critico' ? 4 : 3;
 
       if (id) {
         const oldP = patients.find(x => x.id === id);
@@ -785,23 +1440,22 @@
           await sendSectionNotifications(oldP, data);
         }
       } else {
-        await addDoc(collection(db, 'patients'), data);
+        await addDoc(collection(db, 'patients'), { ...data, therapies: [], exam: {} });
         showToast('Paziente aggiunto');
         $('patientModal').classList.add('hidden');
         const details = [
-          `🚦 Stato: ${statusLabel[data.status]}`,
-          `🩺 Dx: ${data.diagnosis}`,
-          data.therapy ? `💊 Terapia: ${data.therapy.replace(/\n/g, ' | ')}` : '',
-          data.guardia ? `🌙 Guardia: ${data.guardia}` : '',
-          `— ${currentUserShort()}`
+          `🚦 Stato: ${escapeHtml(statusLabel[data.status])}`,
+          `🩺 Dx: ${escapeHtml(data.diagnosis)}`,
+          data.guardia ? `🌙 Guardia: ${escapeHtml(data.guardia)}` : '',
+          `— <i>${escapeHtml(currentUserShort())}</i>`
         ].filter(Boolean).join('\n');
-        await sendNtfy(`Nuovo Ricovero: ${pTitle}`, details, prio, ['hospital']);
+        await sendTelegram(`🏥 Nuovo Ricovero: ${pTitle}`, details);
       }
     });
 
     $('dischargeBtn').addEventListener('click', async () => {
       const id = $('pId').value;
-      if (!id || !confirm('Dimettere il paziente ed eliminare definitivamente scheda e documenti?')) return;
+      if (!id || !confirm('Dimettere il paziente ed eliminare definitivamente scheda, terapia, EO e documenti?')) return;
       const p = patients.find(x => x.id === id);
       const snap = await getDocs(query(collection(db, 'documents'), where('patientId', '==', id)));
       await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
@@ -809,16 +1463,16 @@
       $('patientModal').classList.add('hidden');
       showToast('Letto svuotato');
       if (p) {
-        await sendNtfy(
-          `Dimesso: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
-          `🛏️ Letto svuotato\n— ${currentUserShort()}`,
-          3,
-          ['white_check_mark']
+        await sendTelegram(
+          `✅ Dimesso: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+          `🛏️ Letto svuotato\n— <i>${escapeHtml(currentUserShort())}</i>`
         );
       }
     });
 
+    // ==========================================
     // CARTELLA DOCUMENTI
+    // ==========================================
     function openDocsModal(patientId) {
       activeDocsPatientId = patientId;
       const p = patients.find(x => x.id === patientId);
@@ -893,11 +1547,9 @@
         });
         const p = patients.find(x => x.id === activeDocsPatientId);
         if (p) {
-          await sendNtfy(
-            `Aggiunto Documento: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
-            `📁 [${docCat}] ${docTitle}\n— ${currentUserShort()}`,
-            3,
-            ['page_facing_up']
+          await sendTelegram(
+            `📁 Aggiunto Documento: ${p.name || 'Anonimo'} (St.${p.room} L.${p.bed})`,
+            `[${escapeHtml(docCat)}] ${escapeHtml(docTitle)}\n— <i>${escapeHtml(currentUserShort())}</i>`
           );
         }
         $('docTitle').value = '';
@@ -959,7 +1611,11 @@
       if (!relevant.length) return showToast('Nessuna consegna di guardia');
       const text = `🌙 CONSEGNE GUARDIA (${new Date().toLocaleDateString('it-IT')})\n\n` + relevant.map(p => {
         const openReqs = (p.requests || []).filter(r => !r.done).map(r => `  - ${r.day ? '[' + r.day + '] ' : ''}${r.text}`).join('\n');
-        return `• St.${p.room} L.${p.bed} (${p.name || 'Anonimo'}, ${p.age || '?'}a) [${statusLabel[p.status]}]\n  Dx: ${p.diagnosis}${p.therapy ? `\n  Terapia: ${p.therapy.replace(/\n/g, ' | ')}` : ''}${p.guardia ? `\n  Guardia: ${p.guardia}` : ''}${openReqs ? `\n  Richieste:\n${openReqs}` : ''}`;
+        const thLines = (p.therapies || []).map(t => `  - ${formatTherapyLine(t)}`).join('\n');
+        const legacyTh = p.therapy && p.therapy.trim() ? `  ${p.therapy.replace(/\n/g, ' | ')}` : '';
+        const thBlock = [thLines, legacyTh].filter(Boolean).join('\n');
+        const eoLines = formatExamLines(p.exam).map(l => `  ${l}`).join('\n');
+        return `• St.${p.room} L.${p.bed} (${p.name || 'Anonimo'}, ${p.age || '?'}a) [${statusLabel[p.status]}]\n  Dx: ${p.diagnosis}${eoLines ? `\n  EO:\n${eoLines}` : ''}${thBlock ? `\n  Terapia:\n${thBlock}` : ''}${p.guardia ? `\n  Guardia: ${p.guardia}` : ''}${openReqs ? `\n  Calendario:\n${openReqs}` : ''}`;
       }).join('\n\n');
       await navigator.clipboard.writeText(text);
       showToast('Riepilogo Guardia copiato!');
@@ -969,9 +1625,62 @@
     $('seedBtn').addEventListener('click', async () => {
       const today = new Date().toISOString().split('T')[0];
       const samples = [
-        { room: 4, bed: 1, name: 'Mario Rossi', age: 74, sex: 'M', status: 'critico', admitDate: today, diagnosis: 'Scompenso cardiaco acuto in O2 terapia', therapy: 'Lasix 20mg ev x2\nBisoprololo 2.5mg ore 8\nEnoxaparina 4000 UI sc ore 20', guardia: 'Controllare diuresi ore 22 e K+ serale', requests: [{ text: 'ECG di controllo', day: 'Ven', done: false }, { text: 'Consulenza cardiologica', day: 'Gio', done: true }] },
-        { room: 4, bed: 2, name: 'Lucia Bianchi', age: 68, sex: 'F', status: 'rivalutare', admitDate: today, diagnosis: 'Polmonite basale dx in terapia antibiotica', therapy: 'Ceftriaxone 2g ev/die\nAzitromicina 500mg os/die', guardia: 'Se febbre >38°C eseguire emocolture', requests: [{ text: 'RX torace di controllo', day: 'Sab', done: false }] },
-        { room: 5, bed: 1, name: 'Giuseppe Verdi', age: 59, sex: 'M', status: 'dimissione', admitDate: today, diagnosis: 'Colica renale risolta', therapy: 'Paracetamolo 1g al bisogno', guardia: '', requests: [{ text: 'Lettera di dimissione', day: 'Ven', done: false }] }
+        {
+          room: 4, bed: 1, name: 'Mario Rossi', age: 74, sex: 'M', status: 'critico', admitDate: today,
+          diagnosis: 'Scompenso cardiaco acuto in O2 terapia',
+          exam: {
+            pa: '135/80', fc: '88', spo2: '95% O2 2L', tc: '36.6', fr: '20', diuresi: '1100 ml/24h',
+            neuro: 'Vigile, orientato, collaborante.',
+            torace: 'Crepitii fini basali bilaterali.',
+            cuore: 'Toni validi, ritmici, soffio sistolico 2/6.',
+            addome: 'Trattabile, non dolente.',
+            altro: 'Edemi declivi ++ bilateralmente.',
+            updatedAt: Date.now(), updatedBy: 'demo'
+          },
+          therapies: [
+            { id: 's1', drug: 'Lasix 20mg/2ml', dose: '1 fiala', route: 'EV', times: ['08', '20'], notes: '' },
+            { id: 's2', drug: 'Bisoprololo 2,5mg', dose: '1 cpr', route: 'OS', times: ['08'], notes: '' },
+            { id: 's3', drug: 'Enoxaparina 4000 UI', dose: '1 sir', route: 'SC', times: ['20'], notes: '' }
+          ],
+          guardia: 'Controllare diuresi ore 22 e K+ serale',
+          requests: [
+            { text: 'ECG di controllo', day: 'Gio', done: false },
+            { text: 'Emocromo + elettroliti', day: 'Ven', done: false },
+            { text: 'Consulenza cardiologica', day: 'Lun', done: true }
+          ]
+        },
+        {
+          room: 4, bed: 2, name: 'Lucia Bianchi', age: 68, sex: 'F', status: 'rivalutare', admitDate: today,
+          diagnosis: 'Polmonite basale dx in terapia antibiotica',
+          exam: {
+            pa: '125/75', fc: '82', spo2: '97% AA', tc: '37.4', fr: '18', diuresi: 'Valida',
+            neuro: 'Vigile, orientata.',
+            torace: 'Ipofonesi e rantoli basali a dx.',
+            cuore: 'Toni validi, ritmici.',
+            addome: 'Trattabile, non dolente.',
+            altro: 'Non edemi declivi.',
+            updatedAt: Date.now(), updatedBy: 'demo'
+          },
+          therapies: [
+            { id: 's4', drug: 'Ceftriaxone 2g', dose: '1 fl', route: 'EV', times: ['08'], notes: 'in 100ml SF' },
+            { id: 's5', drug: 'Aldyxil 300ml', dose: '10 ml', route: 'OS', times: ['08', '20'], notes: '' }
+          ],
+          guardia: 'Se febbre >38°C eseguire emocolture',
+          requests: [
+            { text: 'PCR + procalcitonina', day: 'Ven', done: false },
+            { text: 'RX torace di controllo', day: 'Sab', done: false }
+          ]
+        },
+        {
+          room: 5, bed: 1, name: 'Giuseppe Verdi', age: 59, sex: 'M', status: 'dimissione', admitDate: today,
+          diagnosis: 'Colica renale risolta',
+          exam: {},
+          therapies: [
+            { id: 's6', drug: 'Paracetamolo 1000mg', dose: '1 cpr', route: 'OS', times: ['Al bisogno'], notes: 'max 3/die' }
+          ],
+          guardia: '',
+          requests: [{ text: 'Lettera di dimissione', day: 'Gio', done: false }]
+        }
       ];
       await Promise.all(samples.map(s => addDoc(collection(db, 'patients'), { ...s, updatedAt: Date.now() })));
       showToast('3 schede di esempio caricate');
